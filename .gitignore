@@ -1,0 +1,7 @@
+venv/
+.DS_Store
+legacy_backup/
+legacy_backup.tar.gz
+*.sqlite3
+__pycache__/
+*.pyc

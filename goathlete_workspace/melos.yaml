@@ -1,0 +1,22 @@
+name: goathlete_workspace
+repository: https://github.com/your-org/goathlete
+packages:
+  - apps/*
+  - packages/*
+
+scripts:
+  analyze:
+    run: melos exec -c 1 -- "flutter analyze ."
+    description: Run `flutter analyze` in all packages
+  
+  test:
+    run: melos exec -c 1 --fail-fast -- "flutter test"
+    description: Run `flutter test` in all packages
+    select-package:
+      dir-exists: test
+      
+  build:runner:
+    run: melos exec -c 1 -- "dart run build_runner build --delete-conflicting-outputs"
+    description: Run `build_runner` in packages that depend on it
+    select-package:
+      depends-on: build_runner
