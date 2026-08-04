@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Booking
+from .models import Booking, Payment
 from datetime import datetime, date
 
 class BookingSerializer(serializers.ModelSerializer):
@@ -34,3 +34,10 @@ class BookingSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("This venue is already booked for the specified time slot.")
 
         return data
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = '__all__'
+        read_only_fields = ('booking', 'amount', 'currency', 'provider', 'status', 'created_at', 'updated_at')
+

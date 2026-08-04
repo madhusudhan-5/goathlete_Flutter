@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:customer_app/screens/auth/splash_screen.dart';
 import 'package:customer_app/screens/auth/login_screen.dart';
+import 'package:customer_app/screens/auth/profile_completion_screen.dart';
 import 'package:customer_app/screens/profile/profile_setup_screen.dart';
 import 'package:customer_app/screens/main_layout.dart';
 import 'package:customer_app/screens/dashboard/home_screen.dart';
@@ -16,6 +17,12 @@ import 'package:customer_app/screens/dashboard/upcoming_events_screen.dart';
 import 'package:customer_app/screens/community/play_tribes_screen.dart';
 import 'package:customer_app/screens/profile/notifications_screen.dart';
 import 'package:customer_app/screens/profile/profile_details_screen.dart';
+import 'package:customer_app/screens/organizer/organizer_hub_screen.dart';
+import 'package:customer_app/screens/organizer/create_tournament_wizard.dart';
+import 'package:customer_app/screens/organizer/manage_tournaments_screen.dart';
+import 'package:customer_app/screens/team/create_team_screen.dart';
+import 'package:customer_app/screens/team/qr_scanner_screen.dart';
+import 'package:customer_app/screens/scoring/live_scorer_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -34,6 +41,10 @@ final goRouter = GoRouter(
     GoRoute(
       path: '/profile-setup',
       builder: (context, state) => const ProfileSetupScreen(),
+    ),
+    GoRoute(
+      path: '/profile-completion',
+      builder: (context, state) => const ProfileCompletionScreen(),
     ),
     // Booking Flow Routes (Outside Bottom Navigation so they hide the nav bar)
     GoRoute(
@@ -71,6 +82,34 @@ final goRouter = GoRouter(
       path: '/profile-details',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const ProfileDetailsScreen(),
+    ),
+    GoRoute(
+      path: '/live-scorer/:matchId',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) {
+        final matchId = state.pathParameters['matchId'] ?? 'unknown';
+        return LiveScorerScreen(matchId: matchId);
+      },
+    ),
+    GoRoute(
+      path: '/create-tournament',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const CreateTournamentWizard(),
+    ),
+    GoRoute(
+      path: '/manage-tournaments',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const ManageTournamentsScreen(),
+    ),
+    GoRoute(
+      path: '/create-team',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const CreateTeamScreen(),
+    ),
+    GoRoute(
+      path: '/qr-scanner',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const QRScannerScreen(),
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
@@ -114,6 +153,14 @@ final goRouter = GoRouter(
             GoRoute(
               path: '/performance',
               builder: (context, state) => const PerformanceScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/organizer-hub',
+              builder: (context, state) => const OrganizerHubScreen(),
             ),
           ],
         ),

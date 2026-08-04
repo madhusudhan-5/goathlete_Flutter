@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/booking_provider.dart';
 
-class SlotSelectionScreen extends StatefulWidget {
+class SlotSelectionScreen extends ConsumerStatefulWidget {
   const SlotSelectionScreen({super.key});
 
   @override
-  State<SlotSelectionScreen> createState() => _SlotSelectionScreenState();
+  ConsumerState<SlotSelectionScreen> createState() => _SlotSelectionScreenState();
 }
 
-class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
+class _SlotSelectionScreenState extends ConsumerState<SlotSelectionScreen> {
   int _selectedDateIndex = 0;
   int _selectedSlotIndex = -1;
 
@@ -21,12 +23,12 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
   ];
 
   final List<Map<String, dynamic>> _slots = [
-    {'time': '5:00 PM - 6:00 PM', 'available': false},
-    {'time': '6:00 PM - 7:00 PM', 'available': true},
-    {'time': '7:00 PM - 8:00 PM', 'available': true},
-    {'time': '8:00 PM - 9:00 PM', 'available': false},
-    {'time': '9:00 PM - 10:00 PM', 'available': true},
-    {'time': '10:00 PM - 11:00 PM', 'available': true},
+    {'time': '5:00 PM - 6:00 PM', 'startTime': '17:00:00', 'endTime': '18:00:00', 'available': false},
+    {'time': '6:00 PM - 7:00 PM', 'startTime': '18:00:00', 'endTime': '19:00:00', 'available': true},
+    {'time': '7:00 PM - 8:00 PM', 'startTime': '19:00:00', 'endTime': '20:00:00', 'available': true},
+    {'time': '8:00 PM - 9:00 PM', 'startTime': '20:00:00', 'endTime': '21:00:00', 'available': false},
+    {'time': '9:00 PM - 10:00 PM', 'startTime': '21:00:00', 'endTime': '22:00:00', 'available': true},
+    {'time': '10:00 PM - 11:00 PM', 'startTime': '22:00:00', 'endTime': '23:00:00', 'available': true},
   ];
 
   @override
@@ -153,6 +155,16 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
         child: ElevatedButton(
           onPressed: _selectedSlotIndex != -1
               ? () {
+                  final state = ref.read(bookingFlowProvider.notifier).state;
+                  // Map today's date for MVP
+                  final now = DateTime.now();
+                  final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+                  
+                  ref.read(bookingFlowProvider.notifier).state = state.copyWith(
+                    date: dateStr,
+                    startTime: _slots[_selectedSlotIndex]['startTime'],
+                    endTime: _slots[_selectedSlotIndex]['endTime'],
+                  );
                   context.push('/booking-checkout');
                 }
               : null,

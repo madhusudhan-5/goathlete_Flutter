@@ -47,6 +47,7 @@ class PreRegisteredVenue(models.Model):
     )
     
     executive = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='onboarded_venues')
+    real_venue = models.ForeignKey('Venue', on_delete=models.SET_NULL, null=True, blank=True, related_name='preregistered_by')
     
     # Step 1: Basic Details
     name = models.CharField(max_length=255)

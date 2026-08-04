@@ -2,16 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'dart:io';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/profile_provider.dart';
 
-class ProfileDetailsScreen extends ConsumerWidget {
+class ProfileDetailsScreen extends ConsumerStatefulWidget {
   const ProfileDetailsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileDetailsScreen> createState() => _ProfileDetailsScreenState();
+}
+
+class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
+  void _showEditProfileModal(BuildContext context, Map<String, dynamic> profile) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => EditProfileModal(profileData: profile),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
     final isDark = themeMode == ThemeMode.dark || (themeMode == ThemeMode.system && MediaQuery.of(context).platformBrightness == Brightness.dark);
+
+    final profileAsyncValue = ref.watch(profileProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -20,34 +40,45 @@ class ProfileDetailsScreen extends ConsumerWidget {
         backgroundColor: Theme.of(context).colorScheme.surface.withOpacity(0.9),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            Center(
-              child: Column(
-                children: [
-                  const CircleAvatar(
-                    radius: 50,
-                    backgroundImage: NetworkImage('https://i.pravatar.cc/150'),
+      body: profileAsyncValue.when(
+        data: (profile) {
+          final firstName = profile['user']?['first_name'] ?? '';
+          final lastName = profile['user']?['last_name'] ?? '';
+          final fullName = '$firstName $lastName'.trim();
+          final phone = profile['phone_number'] ?? '';
+          final goathId = profile['goath_id'] ?? '';
+          final profilePicUrl = profile['profile_picture'] != null 
+              ? 'http://127.0.0.1:8000${profile['profile_picture']}' 
+              : 'https://i.pravatar.cc/150';
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
+                Center(
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundImage: NetworkImage(profilePicUrl),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(fullName.isNotEmpty ? fullName : 'GoAthlete User', style: Theme.of(context).textTheme.headlineMedium),
+                      const SizedBox(height: 4),
+                      Text(phone, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => _showEditProfileModal(context, profile),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          foregroundColor: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        child: const Text('Edit Profile'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text('Virat Kohli', style: Theme.of(context).textTheme.headlineMedium),
-                  const SizedBox(height: 4),
-                  Text('+91 9876543210', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      foregroundColor: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    child: const Text('Edit Profile'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
+                ),
+                const SizedBox(height: 32),
             _buildSettingsGroup(context, 'Account', [
               _buildSettingsTile(context, Icons.person_outline, 'Personal Information'),
               _buildSettingsTile(context, Icons.payment, 'Payment Methods'),
@@ -55,8 +86,31 @@ class ProfileDetailsScreen extends ConsumerWidget {
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('Your GOATH-ID'),
-                    content: const Text('GOATH-ABCD1234567890\n\nShare this ID with friends so they can add you to teams and tournaments!'),
+                    title: const Text('Your GOATH-ID', textAlign: TextAlign.center),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: QrImageView(
+                            data: goathId.isNotEmpty ? goathId : 'UNKNOWN',
+                            version: QrVersions.auto,
+                            size: 200.0,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          goathId.isNotEmpty ? goathId : 'Not assigned',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text('Have your captain scan this code to add you to their team roster!', textAlign: TextAlign.center),
+                      ],
+                    ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context), 
@@ -107,9 +161,13 @@ class ProfileDetailsScreen extends ConsumerWidget {
             const SizedBox(height: 40),
           ],
         ),
-      ),
-    );
-  }
+      );
+    },
+    loading: () => const Center(child: CircularProgressIndicator()),
+    error: (e, stack) => Center(child: Text('Error: $e')),
+    ),
+  );
+}
 
   Widget _buildSettingsGroup(BuildContext context, String title, List<Widget> children) {
     return Column(
@@ -139,6 +197,161 @@ class ProfileDetailsScreen extends ConsumerWidget {
             )
           : const Icon(Icons.chevron_right, color: Colors.grey),
       onTap: isSwitch ? null : (onTap ?? () {}),
+    );
+  }
+}
+
+class EditProfileModal extends ConsumerStatefulWidget {
+  final Map<String, dynamic> profileData;
+  const EditProfileModal({super.key, required this.profileData});
+
+  @override
+  ConsumerState<EditProfileModal> createState() => _EditProfileModalState();
+}
+
+class _EditProfileModalState extends ConsumerState<EditProfileModal> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _dobController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _emailController;
+  late final TextEditingController _goathIdController;
+  
+  File? _imageFile;
+  final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.profileData;
+    _nameController = TextEditingController(text: p['user']?['first_name'] ?? '');
+    _dobController = TextEditingController(text: p['date_of_birth'] ?? '');
+    _phoneController = TextEditingController(text: p['phone_number'] ?? '');
+    _emailController = TextEditingController(text: p['user']?['email'] ?? '');
+    _goathIdController = TextEditingController(text: p['goath_id'] ?? '');
+  }
+
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _imageFile = File(image.path);
+      });
+    }
+  }
+
+  void _saveProfile() async {
+    final success = await ref.read(authProvider.notifier).updateProfileWithImage(
+      firstName: _nameController.text,
+      dob: _dobController.text,
+      imagePath: _imageFile?.path,
+    );
+    
+    if (success && mounted) {
+      ref.invalidate(profileProvider);
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated successfully!')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        top: 24,
+        left: 24,
+        right: 24,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Edit Profile', style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 24),
+            GestureDetector(
+              onTap: _pickImage,
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundImage: _imageFile != null 
+                        ? FileImage(_imageFile!) as ImageProvider
+                        : (widget.profileData['profile_picture'] != null
+                            ? NetworkImage('http://127.0.0.1:8000${widget.profileData['profile_picture']}')
+                            : const NetworkImage('https://i.pravatar.cc/150')),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: GoAthleteColors.athleticOrange,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: 'Full Name'),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _dobController,
+              decoration: const InputDecoration(labelText: 'Date of Birth (YYYY-MM-DD)'),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _phoneController,
+              decoration: const InputDecoration(labelText: 'Phone Number'),
+              enabled: false,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: 'Email Address'),
+              enabled: false,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _goathIdController,
+              decoration: const InputDecoration(labelText: 'GOATH-ID'),
+              enabled: false,
+            ),
+            const SizedBox(height: 24),
+            if (authState.error != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(authState.error!, style: const TextStyle(color: Colors.red)),
+              ),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: authState.isLoading ? null : _saveProfile,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: GoAthleteColors.athleticOrange,
+                  foregroundColor: Colors.white,
+                ),
+                child: authState.isLoading 
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Save Changes'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

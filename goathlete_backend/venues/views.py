@@ -1,4 +1,5 @@
 from rest_framework import viewsets, permissions
+from rest_framework.response import Response
 from .models import Venue, PreRegisteredVenue
 from .serializers import VenueSerializer, PreRegisteredVenueSerializer
 
@@ -34,8 +35,17 @@ class PreRegisteredVenueViewSet(viewsets.ModelViewSet):
     def approve(self, request, pk=None):
         venue = self.get_object()
         venue.status = 'APPROVED'
+        
+        # Create a real Venue here if it doesn't exist
+        if not venue.real_venue:
+            real_venue = Venue.objects.create(
+                name=venue.name,
+                location=venue.address,
+                # Link owner if possible, or just leave it blank for now
+            )
+            venue.real_venue = real_venue
+            
         venue.save()
-        # Optionally, create a real Venue here
         return Response({'status': 'venue approved'})
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
@@ -44,6 +54,30 @@ class PreRegisteredVenueViewSet(viewsets.ModelViewSet):
         venue.status = 'REJECTED'
         venue.save()
         return Response({'status': 'venue rejected'})
+
+    @action(detail=False, methods=['get'])
+    def dashboard_stats(self, request):
+        user = request.user
+        venues = PreRegisteredVenue.objects.filter(executive=user)
+        total_onboarded = venues.count()
+        pending = venues.filter(status__in=['DRAFT', 'PENDING_APPROVAL']).count()
+        approved = venues.filter(status='APPROVED').count()
+        
+        real_venue_ids = venues.filter(real_venue__isnull=False).values_list('real_venue_id', flat=True)
+        from bookings.models import Booking
+        bookings = Booking.objects.filter(venue_id__in=real_venue_ids)
+        total_bookings = bookings.count()
+        recent_bookings = bookings.order_by('-created_at')[:5]
+        
+        from bookings.serializers import BookingSerializer
+        
+        return Response({
+            'total_onboarded': total_onboarded,
+            'pending_approval': pending,
+            'approved_venues': approved,
+            'total_bookings': total_bookings,
+            'recent_bookings': BookingSerializer(recent_bookings, many=True).data
+        })
 
 from rest_framework import permissions
 

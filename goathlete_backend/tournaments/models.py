@@ -6,17 +6,30 @@ class SportTemplate(models.Model):
     min_players_per_team = models.PositiveIntegerField()
     max_players_per_team = models.PositiveIntegerField()
     is_active = models.BooleanField(default=True)
+    default_rules = models.JSONField(default=dict, blank=True, help_text="Default configuration for the sport.")
 
     def __str__(self):
         return self.name
 
+class SportEvent(models.Model):
+    sport_template = models.ForeignKey(SportTemplate, on_delete=models.CASCADE, related_name='events')
+    name = models.CharField(max_length=100) # e.g., Goal, Wicket, Yellow Card
+    category = models.CharField(max_length=50) # e.g., SCORING, PENALTY, TACTICAL
+    points_value = models.IntegerField(default=0)
+    requires_player = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.sport_template.name}"
+
 class Tournament(models.Model):
     name = models.CharField(max_length=200)
+    organizer = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='organized_tournaments', null=True, blank=True)
     sport_template = models.ForeignKey(SportTemplate, on_delete=models.CASCADE)
     start_date = models.DateField()
     end_date = models.DateField()
     location = models.CharField(max_length=200)
     is_active = models.BooleanField(default=True)
+    tournament_rules = models.JSONField(default=dict, blank=True, help_text="Overrides for default sport rules.")
 
     def __str__(self):
         return self.name
@@ -47,9 +60,22 @@ class Match(models.Model):
     match_date = models.DateTimeField()
     status = models.CharField(max_length=50, choices=[('Scheduled', 'Scheduled'), ('Ongoing', 'Ongoing'), ('Completed', 'Completed')], default='Scheduled')
     winner = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True, related_name='matches_won')
+    current_score = models.JSONField(default=dict, blank=True, help_text="Current aggregated score for polling.")
 
     def __str__(self):
         return f"{self.team_a.name} vs {self.team_b.name}"
+
+class MatchEvent(models.Model):
+    match = models.ForeignKey(Match, on_delete=models.CASCADE, related_name='events')
+    sport_event = models.ForeignKey(SportEvent, on_delete=models.CASCADE)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='match_events')
+    player = models.ForeignKey(UserProfile, on_delete=models.CASCADE, null=True, blank=True)
+    event_time = models.DateTimeField(auto_now_add=True)
+    match_minute = models.IntegerField(default=0)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    def __str__(self):
+        return f"{self.sport_event.name} in Match {self.match.id}"
 
 class PlayerStat(models.Model):
     match = models.ForeignKey(Match, on_delete=models.CASCADE, related_name='player_stats')

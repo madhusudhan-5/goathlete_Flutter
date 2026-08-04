@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/venue_provider.dart';
 import '../../models/venue_model.dart';
-import '../../providers/dashboard_provider.dart';
-import '../../models/dashboard_model.dart';
+import '../../providers/booking_provider.dart';
+import '../../providers/profile_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -13,10 +13,18 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dashboardAsync = ref.watch(dashboardProvider);
+    final profileAsyncValue = ref.watch(profileProvider);
+
+    final profileData = profileAsyncValue.value;
+    final firstName = profileData?['user']?['first_name'];
+    final displayName = (firstName != null && firstName.isNotEmpty) ? firstName : 'Athlete';
+    final profilePicUrl = profileData?['profile_picture'] != null 
+        ? 'http://127.0.0.1:8000${profileData!['profile_picture']}' 
+        : 'https://i.pravatar.cc/100';
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: _buildTopHeader(context),
+      appBar: _buildTopHeader(context, profilePicUrl),
       drawer: const Drawer(), // Side menu placeholder
       body: CustomScrollView(
         slivers: [
@@ -26,34 +34,11 @@ class HomeScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildLocationAndReadyToPlay(context),
+                  _buildLocationAndReadyToPlay(context, displayName),
                   const SizedBox(height: 16),
                   _buildSearchBar(context),
                   const SizedBox(height: 24),
-                  dashboardAsync.when(
-                    data: (config) => Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildHighlightsBanner(context, config.banners),
-                        const SizedBox(height: 32),
-                        _buildPlayBySports(context, config.sports),
-                        const SizedBox(height: 24),
-                        _buildNearbyVenues(context, ref),
-                        const SizedBox(height: 24),
-                        _buildHorizontalCardsRow(context, config.quickActions),
-                        const SizedBox(height: 24),
-                        _buildFooterQuickLinks(context),
-                      ],
-                    ),
-                    loading: () => const Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                    error: (error, stack) => Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: Center(child: Text('Error loading dashboard: $error')),
-                    ),
-                  ),
+                  _buildNearbyVenues(context, ref),
                 ],
               ),
             ),
@@ -63,7 +48,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  PreferredSizeWidget _buildTopHeader(BuildContext context) {
+  PreferredSizeWidget _buildTopHeader(BuildContext context, String profilePicUrl) {
     return AppBar(
       backgroundColor: Theme.of(context).colorScheme.surface.withOpacity(0.9),
       elevation: 0,
@@ -110,9 +95,9 @@ class HomeScreen extends ConsumerWidget {
             onTap: () {
               context.push('/profile-details');
             },
-            child: const CircleAvatar(
+            child: CircleAvatar(
               radius: 16,
-              backgroundImage: NetworkImage('https://i.pravatar.cc/100'),
+              backgroundImage: NetworkImage(profilePicUrl),
             ),
           ),
         ),
@@ -120,7 +105,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildLocationAndReadyToPlay(BuildContext context) {
+  Widget _buildLocationAndReadyToPlay(BuildContext context, String userName) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
@@ -134,10 +119,10 @@ class HomeScreen extends ConsumerWidget {
                 fontWeight: FontWeight.w600,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
-              children: const [
+              children: [
                 TextSpan(
-                  text: 'Athlete!',
-                  style: TextStyle(color: GoAthleteColors.athleticOrange, fontWeight: FontWeight.bold),
+                  text: '$userName!',
+                  style: const TextStyle(color: GoAthleteColors.athleticOrange, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -177,113 +162,6 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHighlightsBanner(BuildContext context, List<HighlightBanner> banners) {
-    if (banners.isEmpty) return const SizedBox.shrink();
-    return SizedBox(
-      height: 180,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: banners.length,
-        itemBuilder: (context, index) {
-          final banner = banners[index];
-          return Container(
-            width: MediaQuery.of(context).size.width * 0.85,
-            margin: const EdgeInsets.only(right: 16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              image: DecorationImage(
-                image: NetworkImage(banner.imageUrl),
-                fit: BoxFit.cover,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: LinearGradient(
-                  colors: [Colors.black.withOpacity(0.8), Colors.transparent],
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                ),
-              ),
-              alignment: Alignment.bottomLeft,
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                banner.title,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildPlayBySports(BuildContext context, List<SportCategory> sports) {
-    if (sports.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Text('Play by Sports', style: Theme.of(context).textTheme.headlineMedium),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 90,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: sports.length,
-            itemBuilder: (context, index) {
-              final sport = sports[index];
-              return Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: Column(
-                  children: [
-                    Container(
-                      height: 60,
-                      width: 60,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          )
-                        ],
-                      ),
-                      child: Icon(
-                        _getIconData(sport.iconName),
-                        color: GoAthleteColors.athleticOrange,
-                        size: 30,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      sport.name,
-                      style: Theme.of(context).textTheme.labelSmall,
-                    )
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildNearbyVenues(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -301,13 +179,19 @@ class HomeScreen extends ConsumerWidget {
           
           ref.watch(venueProvider).when(
             data: (venues) {
-               // Showing only 2 items here for brevity since we added more sections above and below
-              final items = venues.take(2).toList();
-              if (items.isEmpty) {
-                return const Center(child: Text("No venues found."));
+              if (venues.isEmpty) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: Text(
+                      "No venues currently",
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  ),
+                );
               }
               return Column(
-                children: items.map((venue) => _buildDynamicVenueCard(context, venue)).toList(),
+                children: venues.map((venue) => _buildDynamicVenueCard(context, ref, venue)).toList(),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -318,107 +202,35 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHorizontalCardsRow(BuildContext context, List<QuickAction> actions) {
-    if (actions.isEmpty) return const SizedBox.shrink();
-
-    return SizedBox(
-      height: 120,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: actions.length,
-        itemBuilder: (context, index) {
-          final action = actions[index];
-          return GestureDetector(
-            onTap: () {
-              if (action.route.isNotEmpty) {
-                context.push(action.route);
-              }
-            },
-            child: Container(
-              width: 100,
-              margin: const EdgeInsets.only(right: 16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  )
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: GoAthleteColors.athleticOrange.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(_getIconData(action.iconName), color: GoAthleteColors.athleticOrange, size: 30),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    action.title,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildFooterQuickLinks(BuildContext context) {
-    final links = [
-      {'title': 'Vouchers', 'icon': Icons.card_giftcard},
-      {'title': 'Support & Help', 'icon': Icons.help_outline},
-      {'title': 'Corporate Connect (Coming Soon)', 'icon': Icons.business},
-      {'title': 'Loans on sports training (Coming Soon)', 'icon': Icons.account_balance},
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('More for you', style: Theme.of(context).textTheme.headlineMedium),
-          const SizedBox(height: 16),
-          ...links.map((link) => ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
-              child: Icon(link['icon'] as IconData, color: GoAthleteColors.athleticOrange),
-            ),
-            title: Text(link['title'] as String, style: Theme.of(context).textTheme.labelMedium),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {},
-          )).toList(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDynamicVenueCard(BuildContext context, Venue venue) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: GlassContainer(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+  Widget _buildDynamicVenueCard(BuildContext context, WidgetRef ref, Venue venue) {
+    return GestureDetector(
+      onTap: () {
+        // Save the selected venue to the global booking flow state
+        ref.read(bookingFlowProvider.notifier).state = BookingFlowState(
+          venue: {
+            'id': venue.id,
+            'name': venue.name,
+            'price_per_hour': venue.pricePerHour,
+            'image_url': venue.imageUrl,
+            'distance': venue.distance,
+            'rating': venue.rating,
+          }
+        );
+        context.push('/venue-details');
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 16.0),
+        child: GlassContainer(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Container(
               height: 140,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 image: DecorationImage(
-                  image: NetworkImage(venue.imageUrl.isNotEmpty ? venue.imageUrl : 'https://images.unsplash.com/photo-1574629810360-7efbb2639446'),
+                  image: NetworkImage(venue.imageUrl.isNotEmpty ? venue.imageUrl : 'https://placehold.co/400x200/png'),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -464,9 +276,9 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-
+    ),
+  );
+}
   IconData _getIconData(String iconName) {
     switch (iconName) {
       case 'sports_tennis': return Icons.sports_tennis;

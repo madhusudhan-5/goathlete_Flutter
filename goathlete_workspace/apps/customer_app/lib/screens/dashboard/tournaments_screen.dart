@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:core_ui/core_ui.dart';
+import 'package:go_router/go_router.dart';
 
 class TournamentsScreen extends StatelessWidget {
   const TournamentsScreen({super.key});
@@ -106,7 +107,9 @@ class TournamentsScreen extends StatelessWidget {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              context.push('/create-team');
+                            },
                             child: const Text('Register Now'),
                           ),
                         )

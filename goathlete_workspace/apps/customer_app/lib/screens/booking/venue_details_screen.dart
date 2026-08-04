@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/booking_provider.dart';
 
-class VenueDetailsScreen extends StatelessWidget {
+class VenueDetailsScreen extends ConsumerWidget {
   const VenueDetailsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final flowState = ref.watch(bookingFlowProvider);
+    final venue = flowState.venue ?? {};
+    final venueName = venue['name'] ?? 'Unknown Venue';
+    final venueRating = venue['rating']?.toString() ?? 'N/A';
+    final venueDistance = venue['distance'] ?? '';
+    final venueImage = venue['image_url'] ?? 'https://images.unsplash.com/photo-1574629810360-7efbb2639446?auto=format&fit=crop&w=1000&q=80';
+    final pricePerHour = venue['price_per_hour'] ?? 0;
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       body: CustomScrollView(
@@ -30,7 +39,7 @@ class VenueDetailsScreen extends StatelessWidget {
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: Image.network(
-                'https://images.unsplash.com/photo-1574629810360-7efbb2639446?auto=format&fit=crop&w=1000&q=80',
+                venueImage.isNotEmpty ? venueImage : 'https://images.unsplash.com/photo-1574629810360-7efbb2639446?auto=format&fit=crop&w=1000&q=80',
                 fit: BoxFit.cover,
                 color: Colors.black.withOpacity(0.3),
                 colorBlendMode: BlendMode.darken,
@@ -46,18 +55,18 @@ class VenueDetailsScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Smash It Turf', style: Theme.of(context).textTheme.headlineMedium),
+                      Text(venueName, style: Theme.of(context).textTheme.headlineMedium),
                       Row(
                         children: [
                           const Icon(Icons.star, color: Colors.orange, size: 20),
                           const SizedBox(width: 4),
-                          Text('4.8 (120 reviews)', style: Theme.of(context).textTheme.bodyMedium),
+                          Text(venueRating, style: Theme.of(context).textTheme.bodyMedium),
                         ],
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text('1.2 km away • HSR Layout, Bangalore', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                  Text('$venueDistance away', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                   const SizedBox(height: 24),
                   Text('Available Sports', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 12),
@@ -111,7 +120,7 @@ class VenueDetailsScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Starts at', style: Theme.of(context).textTheme.labelSmall),
-                Text('₹800 / hour', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: GoAthleteColors.athleticOrange, fontWeight: FontWeight.bold)),
+                Text('₹$pricePerHour / hour', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: GoAthleteColors.athleticOrange, fontWeight: FontWeight.bold)),
               ],
             ),
             ElevatedButton(

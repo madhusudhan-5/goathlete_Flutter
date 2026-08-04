@@ -22,20 +22,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _handleSendOTP() async {
     final phone = _phoneController.text.trim();
 
-    if (phone.isNotEmpty) {
-      final devOtp = await ref.read(authProvider.notifier).sendOTP(phone);
-      if (devOtp != null) {
-        setState(() {
-          _otpSent = true;
-          _devOtp = devOtp;
-        });
-        // Auto-fill for dev convenience
-        _otpController.text = devOtp;
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter phone number')),
-      );
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter phone number')));
+      return;
+    }
+
+    if (!RegExp(r'^(?:\+91|91)?[6789]\d{9}$').hasMatch(phone)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid 10-digit Indian phone number')));
+      return;
+    }
+
+    final devOtp = await ref.read(authProvider.notifier).sendOTP(phone);
+    if (devOtp != null) {
+      setState(() {
+        _otpSent = true;
+        _devOtp = devOtp;
+      });
+      // Auto-fill for dev convenience
+      _otpController.text = devOtp;
     }
   }
 
@@ -44,14 +48,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final otp = _otpController.text.trim();
 
     if (phone.isNotEmpty && otp.isNotEmpty) {
-      final success = await ref.read(authProvider.notifier).verifyOTP(phone, otp);
-      if (success && mounted) {
-        context.go('/explore');
+      final isProfileComplete = await ref.read(authProvider.notifier).verifyOTP(phone, otp);
+      if (isProfileComplete != null && mounted) {
+        if (isProfileComplete) {
+          context.go('/explore');
+        } else {
+          context.go('/profile-completion');
+        }
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Enter OTP')),
       );
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    final isProfileComplete = await ref.read(authProvider.notifier).signInWithGoogle();
+    if (isProfileComplete != null && mounted) {
+      if (isProfileComplete) {
+        context.go('/explore');
+      } else {
+        context.go('/profile-completion');
+      }
     }
   }
 
@@ -166,6 +185,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                           )
                                         : Text(_otpSent ? 'Verify OTP' : 'Send OTP'),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                OutlinedButton.icon(
+                                  onPressed: authState.isLoading ? null : _handleGoogleSignIn,
+                                  icon: const Icon(Icons.g_mobiledata, size: 32),
+                                  label: const Text('Continue with Google'),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 12.0),
                                   ),
                                 ),
                               ],

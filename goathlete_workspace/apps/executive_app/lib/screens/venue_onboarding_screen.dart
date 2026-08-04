@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
 import '../providers/venue_provider.dart';
 
 class VenueOnboardingScreen extends ConsumerStatefulWidget {
@@ -28,17 +30,73 @@ class _VenueOnboardingScreenState extends ConsumerState<VenueOnboardingScreen> {
 
   bool _isSubmitting = false;
 
+  double? _latitude;
+  double? _longitude;
+  List<XFile> _selectedFiles = [];
+
+  Future<void> _fetchLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location services are disabled.')));
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location permissions are denied')));
+        return;
+      }
+    }
+    
+    if (permission == LocationPermission.deniedForever) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location permissions are permanently denied, we cannot request permissions.')));
+      return;
+    } 
+
+    try {
+      Position position = await Geolocator.getCurrentPosition();
+      setState(() {
+        _latitude = position.latitude;
+        _longitude = position.longitude;
+        if (_addressController.text.isEmpty) {
+          _addressController.text = "Lat: ${position.latitude.toStringAsFixed(4)}, Lng: ${position.longitude.toStringAsFixed(4)}";
+        }
+      });
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location fetched successfully!')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error fetching location: $e')));
+    }
+  }
+
+  Future<void> _pickFiles() async {
+    final ImagePicker picker = ImagePicker();
+    final List<XFile> images = await picker.pickMultiImage();
+    if (images.isNotEmpty) {
+      setState(() {
+        _selectedFiles.addAll(images);
+      });
+    }
+  }
+
   Future<void> _submitData() async {
     setState(() { _isSubmitting = true; });
-    final data = {
+    final data = <String, dynamic>{
       'name': _nameController.text,
       'owner_name': _ownerController.text,
       'phone_number': _phoneController.text,
-      'email': _emailController.text,
-      'address': _addressController.text,
-      'meeting_date': _meetingDate?.toIso8601String(),
-      'meeting_notes': _notesController.text,
     };
+    if (_emailController.text.isNotEmpty) data['email'] = _emailController.text;
+    if (_addressController.text.isNotEmpty) data['address'] = _addressController.text;
+    if (_latitude != null) data['latitude'] = _latitude!.toStringAsFixed(6);
+    if (_longitude != null) data['longitude'] = _longitude!.toStringAsFixed(6);
+    if (_selectedFiles.isNotEmpty) data['document_url'] = 'https://dummy-storage.goathlete.com/${_selectedFiles.first.name}';
+    if (_meetingDate != null) data['meeting_date'] = _meetingDate!.toIso8601String();
+    if (_notesController.text.isNotEmpty) data['meeting_notes'] = _notesController.text;
     
     try {
       await ref.read(venueSubmitProvider(data).future);
@@ -131,7 +189,7 @@ class _VenueOnboardingScreenState extends ConsumerState<VenueOnboardingScreen> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: _fetchLocation,
                   icon: const Icon(Icons.gps_fixed),
                   label: const Text('Auto-fetch GPS Coordinates'),
                 ),
@@ -147,10 +205,24 @@ class _VenueOnboardingScreenState extends ConsumerState<VenueOnboardingScreen> {
                 const Text('Upload venue photos and KYC documents.'),
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: _pickFiles,
                   icon: const Icon(Icons.upload_file),
                   label: const Text('Select Files'),
                 ),
+                if (_selectedFiles.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    children: _selectedFiles.map((f) => Chip(
+                      label: Text(f.name, style: const TextStyle(fontSize: 12)),
+                      onDeleted: () {
+                        setState(() {
+                          _selectedFiles.remove(f);
+                        });
+                      },
+                    )).toList(),
+                  )
+                ]
               ],
             ),
           ),

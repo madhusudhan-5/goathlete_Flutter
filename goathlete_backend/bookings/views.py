@@ -1,5 +1,5 @@
-from rest_framework import viewsets, permissions
-from .models import Booking
+from rest_framework import viewsets, permissions, status
+from .models import Booking, Payment
 from .serializers import BookingSerializer
 from datetime import datetime, date
 
@@ -89,3 +89,81 @@ class VendorBookingViewSet(viewsets.ModelViewSet):
         
         serializer.save(user=self.request.user, total_price=total_price, status='confirmed')
 
+from venues.models import Venue
+import uuid
+
+class PaymentIntentView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        venue_id = request.data.get('venue_id')
+        date_str = request.data.get('date')
+        start_time_str = request.data.get('start_time')
+        end_time_str = request.data.get('end_time')
+
+        try:
+            venue = Venue.objects.get(id=venue_id)
+            booking_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
+            end_time = datetime.strptime(end_time_str, '%H:%M:%S').time()
+
+            # Calculate duration in hours
+            duration_delta = datetime.combine(booking_date, end_time) - datetime.combine(booking_date, start_time)
+            duration_hours = duration_delta.total_seconds() / 3600.0
+            total_price = venue.price_per_hour * type(venue.price_per_hour)(duration_hours)
+
+            # Create pending booking
+            booking = Booking.objects.create(
+                user=request.user,
+                venue=venue,
+                date=booking_date,
+                start_time=start_time,
+                end_time=end_time,
+                total_price=total_price,
+                status='pending'
+            )
+
+            # Create pending payment
+            payment = Payment.objects.create(
+                booking=booking,
+                amount=total_price,
+                currency='INR',
+                provider='MOCK',
+                status='pending'
+            )
+
+            # Mock client secret for MVP
+            client_secret = f"mock_secret_{uuid.uuid4()}"
+
+            return Response({
+                'payment_id': payment.id,
+                'clientSecret': client_secret,
+                'amount': total_price,
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class PaymentConfirmView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        payment_id = request.data.get('payment_id')
+        transaction_id = request.data.get('transaction_id')
+
+        try:
+            payment = Payment.objects.get(id=payment_id, booking__user=request.user)
+            
+            # Mock success behavior
+            payment.status = 'completed'
+            payment.transaction_id = transaction_id
+            payment.save()
+
+            booking = payment.booking
+            booking.status = 'confirmed'
+            booking.save()
+
+            return Response({'status': 'success', 'message': 'Payment confirmed and booking finalized.'})
+        except Payment.DoesNotExist:
+            return Response({'error': 'Payment not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

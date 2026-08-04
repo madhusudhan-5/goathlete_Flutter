@@ -20,7 +20,14 @@ class UserProfile(models.Model):
     goath_id = models.CharField(max_length=20, unique=True, default=generate_goath_id)
     is_phone_verified = models.BooleanField(default=False)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='CUSTOMER')
+    date_of_birth = models.DateField(null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)
+    kyc_status = models.CharField(max_length=20, default='PENDING')
     
+    @property
+    def is_profile_complete(self):
+        return bool(self.user.first_name and self.user.email and self.date_of_birth)
+
     def __str__(self):
         return f"{self.user.username} - {self.phone_number}"
 
