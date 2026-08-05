@@ -1,10 +1,11 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/profile_provider.dart';
 
-class GoathIdScreen extends StatefulWidget {
+class GoathIdScreen extends ConsumerStatefulWidget {
   final String playerName;
   final String primarySport;
 
@@ -15,34 +16,18 @@ class GoathIdScreen extends StatefulWidget {
   });
 
   @override
-  State<GoathIdScreen> createState() => _GoathIdScreenState();
+  ConsumerState<GoathIdScreen> createState() => _GoathIdScreenState();
 }
 
-class _GoathIdScreenState extends State<GoathIdScreen> {
-  late String _goathId;
-
-  @override
-  void initState() {
-    super.initState();
-    _goathId = _generateGoathId();
-  }
-
-  // Generates a mock 14-digit alphanumeric hash: GOATH-XXXXXXXXXXXXXX
-  String _generateGoathId() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    final random = Random();
-    final hash = String.fromCharCodes(
-      Iterable.generate(14, (_) => chars.codeUnitAt(random.nextInt(chars.length))),
-    );
-    return 'GOATH-$hash';
-  }
-
+class _GoathIdScreenState extends ConsumerState<GoathIdScreen> {
   void _navigateToDashboard() {
     context.go('/explore');
   }
 
   @override
   Widget build(BuildContext context) {
+    final profileState = ref.watch(profileProvider);
+    final goathId = profileState.value?['goath_id'] ?? 'Loading...';
     return Scaffold(
       backgroundColor: GoAthleteColors.deepNavy,
       body: SafeArea(
@@ -89,7 +74,7 @@ class _GoathIdScreenState extends State<GoathIdScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: QrImageView(
-                        data: _goathId,
+                        data: goathId,
                         version: QrVersions.auto,
                         size: 200.0,
                         backgroundColor: Colors.white,
@@ -103,7 +88,7 @@ class _GoathIdScreenState extends State<GoathIdScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _goathId,
+                      goathId,
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         letterSpacing: 1.5,
                         color: GoAthleteColors.deepNavy,

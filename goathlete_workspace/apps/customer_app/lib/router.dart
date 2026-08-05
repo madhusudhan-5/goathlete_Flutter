@@ -156,14 +156,6 @@ final goRouter = GoRouter(
             ),
           ],
         ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/organizer-hub',
-              builder: (context, state) => const OrganizerHubScreen(),
-            ),
-          ],
-        ),
       ],
     ),
   ],

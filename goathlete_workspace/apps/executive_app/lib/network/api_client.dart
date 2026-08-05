@@ -26,7 +26,12 @@ final dioProvider = Provider<Dio>((ref) {
         }
         return handler.next(options);
       },
-      onError: (DioException e, handler) {
+      onError: (DioException e, handler) async {
+        if (e.response?.statusCode == 401) {
+          const storage = FlutterSecureStorage();
+          await storage.delete(key: 'access_token');
+          await storage.delete(key: 'refresh_token');
+        }
         return handler.next(e);
       },
     ),

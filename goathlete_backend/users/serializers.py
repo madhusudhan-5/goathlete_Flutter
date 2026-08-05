@@ -6,6 +6,24 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ('id', 'username', 'email', 'first_name', 'last_name')
 
+class ProfileSerializer(serializers.ModelSerializer):
+    phone_number = serializers.CharField(source='profile.phone_number', read_only=True)
+    goath_id = serializers.CharField(source='profile.goath_id', read_only=True)
+    role = serializers.CharField(source='profile.role', read_only=True)
+    date_of_birth = serializers.DateField(source='profile.date_of_birth', read_only=True)
+    profile_picture = serializers.ImageField(source='profile.profile_picture', read_only=True)
+    primary_sport = serializers.CharField(source='profile.primary_sport', read_only=True)
+    skill_level = serializers.CharField(source='profile.skill_level', read_only=True)
+    bio = serializers.CharField(source='profile.bio', read_only=True)
+
+    class Meta:
+        model = User
+        fields = (
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'phone_number', 'goath_id', 'role', 'date_of_birth',
+            'profile_picture', 'primary_sport', 'skill_level', 'bio'
+        )
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 

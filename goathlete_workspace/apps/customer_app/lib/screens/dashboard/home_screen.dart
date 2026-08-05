@@ -6,26 +6,28 @@ import '../../providers/venue_provider.dart';
 import '../../models/venue_model.dart';
 import '../../providers/booking_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../../widgets/app_drawer.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dashboardAsync = ref.watch(dashboardProvider);
     final profileAsyncValue = ref.watch(profileProvider);
 
     final profileData = profileAsyncValue.value;
-    final firstName = profileData?['user']?['first_name'];
+    final firstName = profileData?['first_name'];
     final displayName = (firstName != null && firstName.isNotEmpty) ? firstName : 'Athlete';
     final profilePicUrl = profileData?['profile_picture'] != null 
-        ? 'http://127.0.0.1:8000${profileData!['profile_picture']}' 
+        ? (profileData!['profile_picture'].toString().startsWith('http') 
+            ? profileData!['profile_picture'] 
+            : 'http://192.168.1.218:8000${profileData!['profile_picture']}') 
         : 'https://i.pravatar.cc/100';
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: _buildTopHeader(context, profilePicUrl),
-      drawer: const Drawer(), // Side menu placeholder
+      drawer: const AppDrawer(),
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(

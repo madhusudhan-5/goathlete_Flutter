@@ -38,21 +38,21 @@ class TournamentNotifier extends StateNotifier<TournamentState> {
 
   TournamentNotifier(this._dio) : super(TournamentState());
 
-  Future<bool> createTournament(Map<String, dynamic> data) async {
+  Future<int?> createTournament(Map<String, dynamic> data) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      await _dio.post('tournaments/tournaments/', data: data);
+      final response = await _dio.post('tournaments/tournaments/', data: data);
       state = state.copyWith(isLoading: false);
-      return true;
+      return response.data['id'] as int;
     } on DioException catch (e) {
       state = state.copyWith(
         isLoading: false, 
         error: e.response?.data?.toString() ?? 'Failed to create tournament'
       );
-      return false;
+      return null;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
-      return false;
+      return null;
     }
   }
 

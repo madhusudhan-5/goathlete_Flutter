@@ -19,11 +19,11 @@ class PerformanceScreen extends StatelessWidget {
           // Stat Overview
           Row(
             children: [
-              Expanded(child: _buildStatCard(context, 'Matches', '42', Icons.sports)),
+              Expanded(child: _buildStatCard(context, 'Matches', '0', Icons.sports)),
               const SizedBox(width: 12),
-              Expanded(child: _buildStatCard(context, 'Win Rate', '68%', Icons.emoji_events)),
+              Expanded(child: _buildStatCard(context, 'Win Rate', '0%', Icons.emoji_events)),
               const SizedBox(width: 12),
-              Expanded(child: _buildStatCard(context, 'MVPs', '12', Icons.star)),
+              Expanded(child: _buildStatCard(context, 'MVPs', '0', Icons.star)),
             ],
           ),
           const SizedBox(height: 24),
@@ -38,24 +38,23 @@ class PerformanceScreen extends StatelessWidget {
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Level: Pro', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: GoAthleteColors.athleticOrange)),
+                    Text('Level: Beginner', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: GoAthleteColors.athleticOrange)),
                     Icon(Icons.qr_code_2, size: 40, color: Colors.white),
                   ],
                 ),
                 const SizedBox(height: 24),
                 LinearProgressIndicator(
-                  value: 0.7,
+                  value: 0.0,
                   backgroundColor: Colors.white.withOpacity(0.2),
                   color: GoAthleteColors.athleticOrange,
                   minHeight: 8,
-                  borderRadius: BorderRadius.circular(4),
                 ),
-                const SizedBox(height: 8),
-                Row(
+                const SizedBox(height: 12),
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('700 XP', style: Theme.of(context).textTheme.bodySmall),
-                    Text('1000 XP to Master', style: Theme.of(context).textTheme.bodySmall),
+                    Text('0 XP', style: TextStyle(color: Colors.white70)),
+                    Text('Next: Intermediate (1000 XP)', style: TextStyle(color: Colors.white70)),
                   ],
                 ),
               ],
@@ -63,12 +62,18 @@ class PerformanceScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // Recent Activity
+          // Recent Matches
           Text('Recent Matches', style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 16),
-          _buildMatchHistoryItem(context, 'Won against Team Alpha', 'Football • 3-1', true),
-          _buildMatchHistoryItem(context, 'Lost against Smashers', 'Badminton • 1-2', false),
-          _buildMatchHistoryItem(context, 'Won against Local Kings', 'Cricket • by 5 wkts', true),
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 32.0),
+              child: Text(
+                'No matches currently',
+                style: TextStyle(color: Colors.grey, fontSize: 16),
+              ),
+            ),
+          ),
         ],
       ),
     );

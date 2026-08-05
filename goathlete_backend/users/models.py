@@ -23,6 +23,9 @@ class UserProfile(models.Model):
     date_of_birth = models.DateField(null=True, blank=True)
     profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)
     kyc_status = models.CharField(max_length=20, default='PENDING')
+    primary_sport = models.CharField(max_length=50, null=True, blank=True)
+    skill_level = models.CharField(max_length=50, null=True, blank=True)
+    bio = models.TextField(null=True, blank=True)
     
     @property
     def is_profile_complete(self):

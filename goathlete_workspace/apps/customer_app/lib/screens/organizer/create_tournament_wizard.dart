@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../providers/tournament_provider.dart';
+import '../../providers/profile_provider.dart';
 
 class CreateTournamentWizard extends ConsumerStatefulWidget {
   const CreateTournamentWizard({super.key});
@@ -29,6 +30,27 @@ class _CreateTournamentWizardState extends ConsumerState<CreateTournamentWizard>
   final _maxTeamsController = TextEditingController();
   final _entryFeeController = TextEditingController();
   String _format = 'Knockout';
+
+  // Step 4: Add Teams
+  final List<String> _teamNames = [];
+  final _teamNameController = TextEditingController();
+
+  // Step 5: Officials
+  String? _umpireName;
+
+  @override
+  void initState() {
+    super.initState();
+    // Default Umpire is the Organizer
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final profile = ref.read(profileProvider).value;
+      if (profile != null) {
+        setState(() {
+          _umpireName = profile['first_name'] ?? 'Organizer';
+        });
+      }
+    });
+  }
 
   Future<void> _getLocation() async {
     setState(() {
@@ -68,13 +90,21 @@ class _CreateTournamentWizardState extends ConsumerState<CreateTournamentWizard>
         'max_teams': int.tryParse(_maxTeamsController.text) ?? 16,
         'entry_fee': _entryFeeController.text,
         'format': _format,
+        'umpire': _umpireName,
       }
     };
     
-    final success = await ref.read(tournamentProvider.notifier).createTournament(data);
-    if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tournament Created Successfully!')));
-      context.pop();
+    final tournamentId = await ref.read(tournamentProvider.notifier).createTournament(data);
+    if (tournamentId != null && mounted) {
+      // Create teams
+      for (final teamName in _teamNames) {
+        await ref.read(tournamentProvider.notifier).createTeam(teamName, tournamentId);
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tournament & Teams Created Successfully!')));
+        context.pop();
+      }
     }
   }
 
@@ -108,7 +138,7 @@ class _CreateTournamentWizardState extends ConsumerState<CreateTournamentWizard>
             }
           }
           
-          if (_currentStep < 2) {
+          if (_currentStep < 4) {
             setState(() => _currentStep += 1);
           } else {
             _submit();
@@ -129,7 +159,7 @@ class _CreateTournamentWizardState extends ConsumerState<CreateTournamentWizard>
                 else
                   ElevatedButton(
                     onPressed: details.onStepContinue,
-                    child: Text(_currentStep == 2 ? 'Create Tournament' : 'Continue'),
+                    child: Text(_currentStep == 4 ? 'Create Tournament' : 'Continue'),
                   ),
                 const SizedBox(width: 8),
                 if (_currentStep > 0 && !tournamentState.isLoading)
@@ -253,6 +283,68 @@ class _CreateTournamentWizardState extends ConsumerState<CreateTournamentWizard>
                   ],
                   onChanged: (val) {
                     if (val != null) setState(() => _format = val);
+                  },
+                ),
+              ],
+            ),
+          ),
+          Step(
+            title: const Text('Teams'),
+            isActive: _currentStep >= 3,
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Add participating teams (Optional)'),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _teamNameController,
+                        decoration: const InputDecoration(labelText: 'Team Name'),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle, color: GoAthleteColors.athleticOrange),
+                      onPressed: () {
+                        if (_teamNameController.text.isNotEmpty) {
+                          setState(() {
+                            _teamNames.add(_teamNameController.text);
+                            _teamNameController.clear();
+                          });
+                        }
+                      },
+                    )
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  children: _teamNames.map((name) => Chip(
+                    label: Text(name),
+                    onDeleted: () {
+                      setState(() {
+                        _teamNames.remove(name);
+                      });
+                    },
+                  )).toList(),
+                )
+              ],
+            ),
+          ),
+          Step(
+            title: const Text('Officials'),
+            isActive: _currentStep >= 4,
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Assign Default Referee/Umpire'),
+                const SizedBox(height: 16),
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Umpire Name'),
+                  controller: TextEditingController(text: _umpireName),
+                  onChanged: (val) {
+                    _umpireName = val;
                   },
                 ),
                 if (tournamentState.error != null)

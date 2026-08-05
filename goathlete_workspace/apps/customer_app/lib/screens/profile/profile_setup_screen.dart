@@ -2,36 +2,58 @@ import 'package:flutter/material.dart';
 import 'package:core_ui/core_ui.dart';
 import 'goath_id_screen.dart';
 
-class ProfileSetupScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/profile_provider.dart';
+
+class ProfileSetupScreen extends ConsumerStatefulWidget {
   const ProfileSetupScreen({super.key});
 
   @override
-  State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
+  ConsumerState<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
 }
 
-class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
+class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final _nameController = TextEditingController();
   final _bioController = TextEditingController();
   String? _selectedSport;
   String? _selectedSkill;
+  bool _isLoading = false;
 
   final List<String> _sports = ['Cricket', 'Football', 'Badminton', 'Basketball', 'Tennis'];
   final List<String> _skills = ['Beginner', 'Intermediate', 'Advanced', 'Professional'];
 
-  void _handleCompleteProfile() {
+  void _handleCompleteProfile() async {
     if (_nameController.text.isNotEmpty && _selectedSport != null && _selectedSkill != null) {
-      // Navigate to the ID generation screen
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => GoathIdScreen(
-            playerName: _nameController.text,
-            primarySport: _selectedSport!,
-          ),
-        ),
-      );
+      setState(() => _isLoading = true);
+      
+      final success = await ref.read(profileProvider.notifier).updateProfile({
+        'first_name': _nameController.text,
+        'primary_sport': _selectedSport,
+        'skill_level': _selectedSkill,
+        'bio': _bioController.text,
+      });
+      
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (success) {
+          // Navigate to the ID generation screen
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => GoathIdScreen(
+                playerName: _nameController.text,
+                primarySport: _selectedSport!,
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to update profile. Please try again.')),
+          );
+        }
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill out all required fields.')),
+        const SnackBar(content: Text('Please fill in your name, select a primary sport, and choose a skill level to generate your ID.')),
       );
     }
   }

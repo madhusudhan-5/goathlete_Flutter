@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import UserSerializer, RegisterSerializer
-from .serializers import UserSerializer, RegisterSerializer
+from .serializers import UserSerializer, RegisterSerializer, ProfileSerializer
+
 from .models import OTP, UserProfile
 import random
 import re
@@ -50,16 +50,22 @@ class VerifyOTPView(APIView):
         otp_record.is_used = True
         otp_record.save()
 
-        user = User.objects.filter(username=phone_number).first()
-        if not user:
-            user = User.objects.create_user(username=phone_number)
-            UserProfile.objects.create(user=user, phone_number=phone_number, is_phone_verified=True)
+        profile = UserProfile.objects.filter(phone_number=phone_number).first()
+        if profile:
+            user = profile.user
+            profile.is_phone_verified = True
+            profile.save()
         else:
-            profile, _ = UserProfile.objects.get_or_create(user=user)
-            if not profile.phone_number:
-                profile.phone_number = phone_number
-                profile.is_phone_verified = True
-                profile.save()
+            user = User.objects.filter(username=phone_number).first()
+            if not user:
+                user = User.objects.create_user(username=phone_number)
+                profile = UserProfile.objects.create(user=user, phone_number=phone_number, is_phone_verified=True)
+            else:
+                profile, _ = UserProfile.objects.get_or_create(user=user)
+                if not profile.phone_number:
+                    profile.phone_number = phone_number
+                    profile.is_phone_verified = True
+                    profile.save()
 
         refresh = RefreshToken.for_user(user)
 
@@ -121,7 +127,7 @@ class RegisterView(generics.CreateAPIView):
 
 class ProfileView(generics.RetrieveAPIView):
     permission_classes = (permissions.IsAuthenticated,)
-    serializer_class = UserSerializer
+    serializer_class = ProfileSerializer
 
     def get_object(self):
         return self.request.user
@@ -138,6 +144,10 @@ class ProfileUpdateView(APIView):
         date_of_birth = request.data.get('date_of_birth')
         profile_picture = request.FILES.get('profile_picture')
         
+        primary_sport = request.data.get('primary_sport')
+        skill_level = request.data.get('skill_level')
+        bio = request.data.get('bio')
+        
         if first_name:
             user.first_name = first_name
         if email:
@@ -148,6 +158,12 @@ class ProfileUpdateView(APIView):
             profile.date_of_birth = date_of_birth
         if profile_picture:
             profile.profile_picture = profile_picture
+        if primary_sport:
+            profile.primary_sport = primary_sport
+        if skill_level:
+            profile.skill_level = skill_level
+        if bio:
+            profile.bio = bio
             
         profile.save()
             

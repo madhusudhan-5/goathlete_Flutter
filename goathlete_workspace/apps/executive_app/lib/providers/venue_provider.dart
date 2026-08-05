@@ -10,10 +10,9 @@ final venueSubmitProvider = FutureProvider.family<bool, Map<String, dynamic>>((r
       data: data,
     );
     return response.statusCode == 201;
+  } on DioException catch (e) {
+    throw Exception('Failed to submit venue onboarding: ${e.response?.data}');
   } catch (e) {
-    if (e is DioException) {
-      throw Exception('Failed to submit venue onboarding: ${e.response?.data}');
-    }
     throw Exception('Failed to submit venue onboarding: $e');
   }
 });
@@ -33,10 +32,9 @@ final dashboardStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async 
   try {
     final response = await dio.get('venues/pre-register-venues/dashboard_stats/');
     return response.data as Map<String, dynamic>;
+  } on DioException catch (e) {
+    throw Exception('API Error: ${e.response?.statusCode} - ${e.response?.data}');
   } catch (e) {
-    if (e is DioException) {
-      throw Exception('API Error: ${e.response?.statusCode} - ${e.response?.data}');
-    }
     throw Exception('Failed to load dashboard stats: $e');
   }
 });

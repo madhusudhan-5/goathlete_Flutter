@@ -52,8 +52,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
       });
       state = state.copyWith(isLoading: false);
       return response.data['dev_otp'] as String?;
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.connectionError) {
+        state = state.copyWith(isLoading: false, error: 'Connection Error: Cannot reach server (is the server running and accessible?)');
+        return null;
+      }
+      final backendError = e.response?.data?['error'] ?? 'Failed to send OTP.';
+      state = state.copyWith(isLoading: false, error: backendError.toString());
+      return null;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Failed to send OTP.');
+      state = state.copyWith(isLoading: false, error: 'Failed to send OTP: ${e.toString()}');
       return null;
     }
   }
@@ -146,6 +154,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String firstName,
     required String dob,
     String? imagePath,
+    String? primarySport,
+    String? skillLevel,
+    String? bio,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
@@ -153,6 +164,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'first_name': firstName,
         'date_of_birth': dob,
       });
+      if (primarySport != null) formData.fields.add(MapEntry('primary_sport', primarySport));
+      if (skillLevel != null) formData.fields.add(MapEntry('skill_level', skillLevel));
+      if (bio != null) formData.fields.add(MapEntry('bio', bio));
 
       if (imagePath != null) {
         formData.files.add(MapEntry(
