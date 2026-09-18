@@ -33,11 +33,14 @@ class _AdminConsoleAppState extends ConsumerState<AdminConsoleApp> {
   }
 
   Future<void> _checkSavedToken() async {
-    const storage = FlutterSecureStorage();
-    final token = await storage.read(key: 'access_token');
-    if (token != null) {
-      ref.read(authStateProvider.notifier).state = token;
-    }
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'access_token');
+      if (token != null) {
+        ref.read(dioProvider).options.headers['Authorization'] = 'Bearer $token';
+        ref.read(authStateProvider.notifier).state = token;
+      }
+    } catch (_) {}
     if (mounted) {
       setState(() => _checkingAuth = false);
     }
@@ -89,8 +92,11 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
         'password': password,
       });
       final token = response.data['access'];
-      const storage = FlutterSecureStorage();
-      await storage.write(key: 'access_token', value: token);
+      dio.options.headers['Authorization'] = 'Bearer $token';
+      try {
+        const storage = FlutterSecureStorage();
+        await storage.write(key: 'access_token', value: token);
+      } catch (_) {}
       ref.read(authStateProvider.notifier).state = token;
       ref.refresh(adminAnalyticsProvider);
       ref.refresh(pendingVenuesProvider);
