@@ -14,11 +14,11 @@ class AppDrawer extends ConsumerWidget {
     final firstName = profileData?['first_name'];
     final displayName = (firstName != null && firstName.isNotEmpty) ? firstName : 'Athlete';
     
-    String profilePicUrl = 'https://i.pravatar.cc/100';
-    if (profileData?['profile_picture'] != null) {
-      profilePicUrl = profileData!['profile_picture'].toString().startsWith('http') 
+    String? profilePicUrl;
+    if (profileData?['profile_picture'] != null && profileData!['profile_picture'].toString().isNotEmpty) {
+      profilePicUrl = profileData['profile_picture'].toString().startsWith('http') 
           ? profileData['profile_picture'] 
-          : 'http://192.168.1.218:8000${profileData['profile_picture']}';
+          : 'http://192.168.1.233:8000${profileData['profile_picture']}';
     }
 
     return Drawer(
@@ -26,11 +26,13 @@ class AppDrawer extends ConsumerWidget {
       child: Column(
         children: [
           UserAccountsDrawerHeader(
-            decoration: const BoxDecoration(color: GoAthleteColors.navy),
+            decoration: const BoxDecoration(color: GoAthleteColors.deepNavy),
             accountName: Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold)),
             accountEmail: Text(profileData?['primary_sport'] ?? 'Sport not set'),
             currentAccountPicture: CircleAvatar(
-              backgroundImage: NetworkImage(profilePicUrl),
+              backgroundColor: GoAthleteColors.athleticOrange,
+              backgroundImage: profilePicUrl != null ? NetworkImage(profilePicUrl) : null,
+              child: profilePicUrl == null ? const Icon(Icons.person, size: 36, color: Colors.white) : null,
             ),
           ),
           ListTile(

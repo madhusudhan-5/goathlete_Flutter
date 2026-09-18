@@ -18,11 +18,11 @@ class HomeScreen extends ConsumerWidget {
     final profileData = profileAsyncValue.value;
     final firstName = profileData?['first_name'];
     final displayName = (firstName != null && firstName.isNotEmpty) ? firstName : 'Athlete';
-    final profilePicUrl = profileData?['profile_picture'] != null 
-        ? (profileData!['profile_picture'].toString().startsWith('http') 
-            ? profileData!['profile_picture'] 
-            : 'http://192.168.1.218:8000${profileData!['profile_picture']}') 
-        : 'https://i.pravatar.cc/100';
+    final profilePicUrl = (profileData?['profile_picture'] != null && profileData!['profile_picture'].toString().isNotEmpty)
+        ? (profileData['profile_picture'].toString().startsWith('http') 
+            ? profileData['profile_picture'] 
+            : 'http://192.168.1.233:8000${profileData['profile_picture']}') 
+        : null;
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -50,7 +50,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  PreferredSizeWidget _buildTopHeader(BuildContext context, String profilePicUrl) {
+  PreferredSizeWidget _buildTopHeader(BuildContext context, String? profilePicUrl) {
     return AppBar(
       backgroundColor: Theme.of(context).colorScheme.surface.withOpacity(0.9),
       elevation: 0,
@@ -99,7 +99,9 @@ class HomeScreen extends ConsumerWidget {
             },
             child: CircleAvatar(
               radius: 16,
-              backgroundImage: NetworkImage(profilePicUrl),
+              backgroundColor: GoAthleteColors.athleticOrange,
+              backgroundImage: profilePicUrl != null ? NetworkImage(profilePicUrl) : null,
+              child: profilePicUrl == null ? const Icon(Icons.person, size: 18, color: Colors.white) : null,
             ),
           ),
         ),

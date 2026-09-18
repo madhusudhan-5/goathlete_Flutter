@@ -73,11 +73,18 @@ class _TournamentsScreenState extends ConsumerState<TournamentsScreen> {
                       children: [
                         Container(
                           height: 160,
-                          decoration: const BoxDecoration(
-                            image: DecorationImage(
-                              image: NetworkImage('https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=800&q=80'),
-                              fit: BoxFit.cover,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [GoAthleteColors.deepNavy, GoAthleteColors.deepestMidnight],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
+                            image: (tournament['banner_image'] != null && tournament['banner_image'].toString().isNotEmpty)
+                                ? DecorationImage(
+                                    image: NetworkImage(tournament['banner_image']),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
                           ),
                           child: Container(
                             decoration: BoxDecoration(

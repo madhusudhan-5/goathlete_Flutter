@@ -14,7 +14,7 @@ class VenueDetailsScreen extends ConsumerWidget {
     final venueName = venue['name'] ?? 'Unknown Venue';
     final venueRating = venue['rating']?.toString() ?? 'N/A';
     final venueDistance = venue['distance'] ?? '';
-    final venueImage = venue['image_url'] ?? 'https://images.unsplash.com/photo-1574629810360-7efbb2639446?auto=format&fit=crop&w=1000&q=80';
+    final String? venueImage = (venue['image_url'] != null && venue['image_url'].toString().isNotEmpty) ? venue['image_url'] : null;
     final pricePerHour = venue['price_per_hour'] ?? 0;
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -38,12 +38,25 @@ class VenueDetailsScreen extends ConsumerWidget {
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              background: Image.network(
-                venueImage.isNotEmpty ? venueImage : 'https://images.unsplash.com/photo-1574629810360-7efbb2639446?auto=format&fit=crop&w=1000&q=80',
-                fit: BoxFit.cover,
-                color: Colors.black.withOpacity(0.3),
-                colorBlendMode: BlendMode.darken,
-              ),
+              background: venueImage != null
+                  ? Image.network(
+                      venueImage,
+                      fit: BoxFit.cover,
+                      color: Colors.black.withOpacity(0.3),
+                      colorBlendMode: BlendMode.darken,
+                    )
+                  : Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [GoAthleteColors.deepNavy, GoAthleteColors.athleticOrange],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.sports, size: 80, color: Colors.white54),
+                      ),
+                    ),
             ),
           ),
           SliverToBoxAdapter(

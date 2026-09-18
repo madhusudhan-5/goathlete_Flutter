@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-final String _baseUrl = 'http://192.168.1.218:8000/api/';
+final String _baseUrl = 'http://192.168.1.233:8000/api/';
 
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(

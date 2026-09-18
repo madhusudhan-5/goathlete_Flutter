@@ -21,6 +21,9 @@ class VendorApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       home: const VendorHomeScreen(),
     );
+  }
+}
+
 class VendorHomeScreen extends ConsumerWidget {
   const VendorHomeScreen({super.key});
 

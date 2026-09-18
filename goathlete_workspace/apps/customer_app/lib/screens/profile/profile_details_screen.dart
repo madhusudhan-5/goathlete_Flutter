@@ -47,11 +47,12 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
           final fullName = '$firstName $lastName'.trim();
           final phone = profile['phone_number'] ?? '';
           final goathId = profile['goath_id'] ?? '';
-          final profilePicUrl = profile['profile_picture'] != null 
+          final hasPic = profile['profile_picture'] != null && profile['profile_picture'].toString().isNotEmpty;
+          final profilePicUrl = hasPic
               ? (profile['profile_picture'].toString().startsWith('http')
                   ? profile['profile_picture']
-                  : 'http://192.168.1.218:8000${profile['profile_picture']}') 
-              : 'https://i.pravatar.cc/150';
+                  : 'http://192.168.1.233:8000${profile['profile_picture']}') 
+              : null;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
@@ -62,7 +63,9 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                     children: [
                       CircleAvatar(
                         radius: 50,
-                        backgroundImage: NetworkImage(profilePicUrl),
+                        backgroundColor: GoAthleteColors.athleticOrange,
+                        backgroundImage: profilePicUrl != null ? NetworkImage(profilePicUrl) : null,
+                        child: profilePicUrl == null ? const Icon(Icons.person, size: 50, color: Colors.white) : null,
                       ),
                       const SizedBox(height: 16),
                       Text(fullName.isNotEmpty ? fullName : 'GoAthlete User', style: Theme.of(context).textTheme.headlineMedium),
@@ -312,11 +315,15 @@ class _EditProfileModalState extends ConsumerState<EditProfileModal> {
                 children: [
                   CircleAvatar(
                     radius: 50,
+                    backgroundColor: GoAthleteColors.athleticOrange,
                     backgroundImage: _imageFile != null 
                         ? FileImage(_imageFile!) as ImageProvider
-                        : (widget.profileData['profile_picture'] != null 
-                            ? NetworkImage(widget.profileData['profile_picture'].toString().startsWith('http') ? widget.profileData['profile_picture'] : 'http://192.168.1.218:8000${widget.profileData['profile_picture']}')
-                            : const NetworkImage('https://i.pravatar.cc/150')),
+                        : (widget.profileData['profile_picture'] != null && widget.profileData['profile_picture'].toString().isNotEmpty
+                            ? NetworkImage(widget.profileData['profile_picture'].toString().startsWith('http') ? widget.profileData['profile_picture'] : 'http://192.168.1.233:8000${widget.profileData['profile_picture']}')
+                            : null),
+                    child: (_imageFile == null && (widget.profileData['profile_picture'] == null || widget.profileData['profile_picture'].toString().isEmpty))
+                        ? const Icon(Icons.person, size: 50, color: Colors.white)
+                        : null,
                   ),
                   Positioned(
                     bottom: 0,
