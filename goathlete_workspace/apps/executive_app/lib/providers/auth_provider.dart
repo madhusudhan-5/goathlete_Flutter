@@ -87,8 +87,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
       
       state = state.copyWith(isAuthenticated: true, isLoading: false);
       return true;
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.connectionError) {
+        state = state.copyWith(isLoading: false, error: 'Connection Error: Cannot reach server.');
+      } else {
+        final backendError = e.response?.data?['error'] ?? 'Invalid OTP.';
+        state = state.copyWith(isLoading: false, error: backendError.toString());
+      }
+      return false;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Invalid OTP or Connection Error.');
+      state = state.copyWith(isLoading: false, error: 'Unexpected error: ${e.toString()}');
       return false;
     }
   }

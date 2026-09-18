@@ -5,3 +5,4 @@ legacy_backup.tar.gz
 *.sqlite3
 __pycache__/
 *.pyc
+*.log
