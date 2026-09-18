@@ -11,17 +11,174 @@ void main() {
   runApp(const ProviderScope(child: AdminConsoleApp()));
 }
 
-class AdminConsoleApp extends StatelessWidget {
+final authStateProvider = StateProvider<String?>((ref) => null);
+
+class AdminConsoleApp extends ConsumerStatefulWidget {
   const AdminConsoleApp({super.key});
 
   @override
+  ConsumerState<AdminConsoleApp> createState() => _AdminConsoleAppState();
+}
+
+class _AdminConsoleAppState extends ConsumerState<AdminConsoleApp> {
+  bool _checkingAuth = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSavedToken();
+  }
+
+  Future<void> _checkSavedToken() async {
+    const storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'access_token');
+    if (token != null) {
+      ref.read(authStateProvider.notifier).state = token;
+    }
+    if (mounted) {
+      setState(() => _checkingAuth = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final token = ref.watch(authStateProvider);
+
     return MaterialApp(
       title: 'GoAthlete Super Admin',
       theme: GoAthleteTheme.lightTheme,
       darkTheme: GoAthleteTheme.darkTheme,
       themeMode: ThemeMode.system,
-      home: const AdminDashboardScreen(),
+      home: _checkingAuth
+          ? const Scaffold(body: Center(child: CircularProgressIndicator()))
+          : (token == null ? const AdminLoginScreen() : const AdminDashboardScreen()),
+    );
+  }
+}
+
+class AdminLoginScreen extends ConsumerStatefulWidget {
+  const AdminLoginScreen({super.key});
+
+  @override
+  ConsumerState<AdminLoginScreen> createState() => _AdminLoginScreenState();
+}
+
+class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _loading = false;
+  String? _error;
+
+  Future<void> _login() async {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (username.isEmpty || password.isEmpty) {
+      setState(() => _error = 'Please enter both username and password.');
+      return;
+    }
+
+    setState(() { _loading = true; _error = null; });
+    try {
+      final dio = ref.read(dioProvider);
+      final response = await dio.post('users/login/', data: {
+        'username': username,
+        'password': password,
+      });
+      final token = response.data['access'];
+      const storage = FlutterSecureStorage();
+      await storage.write(key: 'access_token', value: token);
+      ref.read(authStateProvider.notifier).state = token;
+      ref.refresh(adminAnalyticsProvider);
+      ref.refresh(pendingVenuesProvider);
+    } catch (e) {
+      if (e is DioException) {
+        setState(() => _error = e.response?.data?['detail'] ?? 'Login failed. Invalid credentials.');
+      } else {
+        setState(() => _error = 'Login error: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
+      appBar: AppBar(
+        title: const Text('Super Admin Login'),
+        backgroundColor: GoAthleteColors.athleticOrange,
+      ),
+      body: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 420),
+          padding: const EdgeInsets.all(32),
+          child: Card(
+            elevation: 4,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Icon(Icons.admin_panel_settings, size: 64, color: GoAthleteColors.athleticOrange),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Super Admin Console',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: _usernameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Username',
+                      prefixIcon: Icon(Icons.person),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: Icon(Icons.lock),
+                      border: OutlineInputBorder(),
+                    ),
+                    obscureText: true,
+                    onSubmitted: (_) => _login(),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: Text(
+                        _error!,
+                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  SizedBox(
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: _loading ? null : _login,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: GoAthleteColors.athleticOrange,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: _loading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text('Login to Console', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -37,6 +194,17 @@ class AdminDashboardScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Super Admin Console'),
         backgroundColor: GoAthleteColors.athleticOrange,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () async {
+              const storage = FlutterSecureStorage();
+              await storage.delete(key: 'access_token');
+              ref.read(authStateProvider.notifier).state = null;
+            },
+          ),
+        ],
       ),
       body: analyticsAsync.when(
         data: (data) {
