@@ -18,7 +18,9 @@ class AppDrawer extends ConsumerWidget {
     if (profileData?['profile_picture'] != null && profileData!['profile_picture'].toString().isNotEmpty) {
       profilePicUrl = profileData['profile_picture'].toString().startsWith('http') 
           ? profileData['profile_picture'] 
-          : 'http://192.168.1.233:8000${profileData['profile_picture']}';
+          : 'http://72.60.193.38${profileData['profile_picture']}';
+
+
     }
 
     return Drawer(
@@ -36,6 +38,15 @@ class AppDrawer extends ConsumerWidget {
             ),
           ),
           ListTile(
+            leading: const Icon(Icons.group_add, color: GoAthleteColors.athleticOrange),
+            title: const Text('Team Creation & Squads', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            subtitle: const Text('Create teams & add players', style: TextStyle(color: Colors.white60, fontSize: 11)),
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/create-team');
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.settings, color: GoAthleteColors.athleticOrange),
             title: const Text('Manage Tournaments', style: TextStyle(color: Colors.white)),
             onTap: () {
@@ -44,12 +55,12 @@ class AppDrawer extends ConsumerWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.scoreboard, color: GoAthleteColors.athleticOrange),
-            title: const Text('Live Scores', style: TextStyle(color: Colors.white)),
+            leading: const Icon(Icons.person, color: GoAthleteColors.athleticOrange),
+            title: const Text('My Profile & Athlete Card', style: TextStyle(color: Colors.white)),
+            subtitle: const Text('View GOATH-ID & personal stats', style: TextStyle(color: Colors.white60, fontSize: 11)),
             onTap: () {
               Navigator.pop(context);
-              // MVP Demo Route
-              context.push('/live-scorer/1'); 
+              context.push('/profile-details');
             },
           ),
           const Spacer(),

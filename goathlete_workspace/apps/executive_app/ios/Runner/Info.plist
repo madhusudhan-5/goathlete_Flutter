@@ -15,7 +15,9 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>executive_app</string>
+	<string>GoAthlete Executive App</string>
+	<key>CFBundleDisplayName</key>
+	<string>GoAthlete Executive App</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

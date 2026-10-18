@@ -2,27 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'providers/vendor_provider.dart';
+import 'providers/auth_provider.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/venue_editor_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/change_password_screen.dart';
+
+import 'screens/splash_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: VendorApp()));
 }
 
-class VendorApp extends StatelessWidget {
+class VendorApp extends ConsumerWidget {
   const VendorApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+
     return MaterialApp(
       title: 'GoAthlete Vendor Partner',
       theme: GoAthleteTheme.lightTheme,
       darkTheme: GoAthleteTheme.darkTheme,
       themeMode: ThemeMode.system,
-      home: const VendorHomeScreen(),
+      home: SplashScreen(
+        nextScreen: authState.isAuthenticated 
+            ? (authState.requiresPasswordChange ? const ChangePasswordScreen() : const VendorHomeScreen()) 
+            : const LoginScreen(),
+      ),
     );
   }
 }
+
 
 class VendorHomeScreen extends ConsumerWidget {
   const VendorHomeScreen({super.key});
@@ -90,13 +102,39 @@ class VendorHomeScreen extends ConsumerWidget {
                     padding: EdgeInsets.all(32.0),
                     child: Center(child: Text('No upcoming bookings scheduled.')),
                   ),
-                ...upcoming.map((b) => Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.event, color: GoAthleteColors.athleticOrange),
-                    title: Text('${b['date']} at ${b['start_time']}'),
-                    subtitle: Text('Status: ${b['status']} | Total: \$${b['total_price']}'),
-                  ),
-                )),
+                ...upcoming.map((b) {
+                  final List rentalItems = b['rental_items'] ?? [];
+                  return Card(
+                    child: ExpansionTile(
+                      leading: const Icon(Icons.event, color: GoAthleteColors.athleticOrange),
+                      title: Text('${b['date']} at ${b['start_time']}'),
+                      subtitle: Text('Status: ${b['status']} | Total: \$${b['total_price']}'),
+                      children: [
+                        if (rentalItems.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Text('No rental items for this booking.'),
+                          )
+                        else
+                          ...rentalItems.map((item) => ListTile(
+                            title: Text(item['item']['name'] ?? 'Rental Item'),
+                            subtitle: Text('Qty: ${item['quantity']}'),
+                            trailing: ElevatedButton(
+                              onPressed: () async {
+                                try {
+                                  await ref.read(approveBookingRentalItemProvider(item['id']).future);
+                                  if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rental item approved!')));
+                                } catch (e) {
+                                  if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                                }
+                              },
+                              child: const Text('Approve'),
+                            ),
+                          )),
+                      ],
+                    ),
+                  );
+                }),
               ],
             ),
           );

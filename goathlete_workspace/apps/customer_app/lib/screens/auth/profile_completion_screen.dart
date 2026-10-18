@@ -72,7 +72,7 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
         title: const Text('Complete Profile'),
         backgroundColor: GoAthleteColors.athleticOrange,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -113,16 +113,19 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
                 ),
               ],
             ),
-            const Spacer(),
+            const SizedBox(height: 32),
             if (authState.error != null) ...[
               Text(authState.error!, style: const TextStyle(color: Colors.red)),
               const SizedBox(height: 16),
             ],
-            ElevatedButton(
-              onPressed: authState.isLoading ? null : _submitProfile,
-              child: authState.isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('Complete Registration'),
+            SizedBox(
+              height: 48,
+              child: ElevatedButton(
+                onPressed: authState.isLoading ? null : _submitProfile,
+                child: authState.isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Complete Registration'),
+              ),
             ),
           ],
         ),

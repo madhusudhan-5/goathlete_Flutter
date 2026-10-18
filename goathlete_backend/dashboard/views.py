@@ -64,3 +64,34 @@ class PromotionalOfferViewSet(viewsets.ModelViewSet):
     queryset = PromotionalOffer.objects.all()
     serializer_class = PromotionalOfferSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+import urllib.request
+import xml.etree.ElementTree as ET
+
+class SportsNewsView(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def get(self, request):
+        query = request.GET.get('q', 'sports')
+        url = f"https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN&ceid=IN:en"
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=5) as response:
+                xml_data = response.read()
+                
+            root = ET.fromstring(xml_data)
+            news_items = []
+            for item in root.findall('./channel/item')[:5]:
+                title = item.find('title').text if item.find('title') is not None else ''
+                link = item.find('link').text if item.find('link') is not None else ''
+                pub_date = item.find('pubDate').text if item.find('pubDate') is not None else ''
+                news_items.append({
+                    'title': title,
+                    'link': link,
+                    'pubDate': pub_date,
+                    'image_url': 'https://via.placeholder.com/300x150?text=Sports+News'
+                })
+                
+            return Response({'news': news_items}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

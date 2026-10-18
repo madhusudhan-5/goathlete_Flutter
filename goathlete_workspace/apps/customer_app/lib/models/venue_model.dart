@@ -11,6 +11,8 @@ class Venue with _$Venue {
     required String description,
     required String location,
     required String distance,
+    double? latitude,
+    double? longitude,
     required num rating,
     @JsonKey(name: 'reviews_count') required int reviewsCount,
     @JsonKey(name: 'image_url') required String imageUrl,

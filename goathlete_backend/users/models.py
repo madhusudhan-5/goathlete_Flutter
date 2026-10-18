@@ -22,6 +22,7 @@ class UserProfile(models.Model):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='CUSTOMER')
     date_of_birth = models.DateField(null=True, blank=True)
     profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)
+    requires_password_change = models.BooleanField(default=False)
     kyc_status = models.CharField(max_length=20, default='PENDING')
     primary_sport = models.CharField(max_length=50, null=True, blank=True)
     skill_level = models.CharField(max_length=50, null=True, blank=True)
@@ -42,3 +43,12 @@ class OTP(models.Model):
 
     def __str__(self):
         return f"{self.phone_number} - {self.otp_code}"
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.get_or_create(user=instance)
+

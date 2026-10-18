@@ -3,9 +3,12 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'screens/venue_onboarding_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/change_password_screen.dart';
 import 'screens/dashboard/executive_dashboard_screen.dart';
 import 'providers/venue_provider.dart';
 import 'providers/auth_provider.dart';
+
+import 'screens/splash_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: ExecutiveApp()));
@@ -23,8 +26,13 @@ class ExecutiveApp extends ConsumerWidget {
       theme: GoAthleteTheme.lightTheme,
       darkTheme: GoAthleteTheme.darkTheme,
       themeMode: ThemeMode.system,
-      home: authState.isAuthenticated ? const ExecutiveDashboardScreen() : const LoginScreen(),
+      home: SplashScreen(
+        nextScreen: authState.isAuthenticated 
+            ? (authState.requiresPasswordChange ? const ChangePasswordScreen() : const ExecutiveDashboardScreen()) 
+            : const LoginScreen(),
+      ),
     );
   }
 }
+
 

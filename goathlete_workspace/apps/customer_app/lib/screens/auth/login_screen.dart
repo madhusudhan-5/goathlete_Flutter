@@ -88,12 +88,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       body: Stack(
         children: [
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                   Image.asset('assets/images/appIcon.png', width: 80, height: 80),
                   const SizedBox(height: 24),
                   Image.asset(
@@ -207,8 +208,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
+    ),
       floatingActionButton: Consumer(
         builder: (context, ref, child) {
           final isDark = Theme.of(context).brightness == Brightness.dark;

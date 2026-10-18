@@ -3,6 +3,9 @@ from rest_framework.routers import DefaultRouter
 from .views import BookingViewSet, VendorDashboardView, VendorBookingViewSet, PaymentIntentView, PaymentConfirmView
 
 router = DefaultRouter()
+from .views import BookingRentalItemViewSet
+
+router.register(r'rental-items', BookingRentalItemViewSet, basename='booking-rental-item')
 router.register(r'vendor-bookings', VendorBookingViewSet, basename='vendor-booking')
 router.register(r'', BookingViewSet, basename='booking')
 

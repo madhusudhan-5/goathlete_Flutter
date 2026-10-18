@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
+import 'change_password_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -11,55 +12,25 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _otpController = TextEditingController();
-  
-  bool _otpSent = false;
-  String? _devOtp;
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
-  Future<void> _handleSendOTP() async {
-    final phone = _phoneController.text.trim();
+  Future<void> _handleLogin() async {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
 
-    if (phone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter phone number')));
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter username and password')));
       return;
     }
 
-    if (!RegExp(r'^(?:\+91|91)?[6789]\d{9}$').hasMatch(phone)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid 10-digit Indian phone number')));
-      return;
-    }
-
-    final devOtp = await ref.read(authProvider.notifier).sendOTP(phone);
-    if (devOtp != null) {
-      setState(() {
-        _otpSent = true;
-        _devOtp = devOtp;
-      });
-      _otpController.text = devOtp;
-    }
-  }
-
-  Future<void> _handleVerifyOTP() async {
-    final phone = _phoneController.text.trim();
-    final otp = _otpController.text.trim();
-
-    if (phone.isNotEmpty && otp.isNotEmpty) {
-      final success = await ref.read(authProvider.notifier).verifyOTP(phone, otp);
-      if (success && mounted) {
-        // App's main router/listener will pick up isAuthenticated = true
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter OTP')),
-      );
-    }
+    await ref.read(authProvider.notifier).login(username, password);
   }
 
   @override
   void dispose() {
-    _phoneController.dispose();
-    _otpController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -95,43 +66,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Phone Number',
+                      'Username/Email',
                       style: Theme.of(context).textTheme.labelMedium,
                     ),
                     const SizedBox(height: 8),
                     TextField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      enabled: !_otpSent,
+                      controller: _usernameController,
                       decoration: const InputDecoration(
-                        hintText: 'Enter phone number',
+                        hintText: 'Enter username or email',
                       ),
                     ),
                     
-                    if (_otpSent) ...[
-                      const SizedBox(height: 16),
-                      Text(
-                        'OTP Code',
-                        style: Theme.of(context).textTheme.labelMedium,
+                    const SizedBox(height: 16),
+                    Text(
+                      'Password',
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        hintText: 'Enter password',
                       ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _otpController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          hintText: 'Enter OTP',
-                        ),
-                      ),
-                      if (_devOtp != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(
-                            'Dev Mode OTP: $_devOtp',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: GoAthleteColors.athleticOrange),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                    ],
+                    ),
 
                     const SizedBox(height: 24),
                     
@@ -151,9 +109,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                               ),
                             ElevatedButton(
-                              onPressed: authState.isLoading 
-                                  ? null 
-                                  : (_otpSent ? _handleVerifyOTP : _handleSendOTP),
+                              onPressed: authState.isLoading ? null : _handleLogin,
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                                 child: authState.isLoading
@@ -162,7 +118,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         width: 20,
                                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                       )
-                                    : Text(_otpSent ? 'Verify OTP' : 'Send OTP'),
+                                    : const Text('Login'),
                               ),
                             ),
                           ],

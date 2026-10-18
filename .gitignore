@@ -6,3 +6,14 @@ legacy_backup.tar.gz
 __pycache__/
 *.pyc
 *.log
+.env
+media/
+
+# Flutter & Android build artifacts
+**/build/
+**/.dart_tool/
+**/.gradle/
+**/*.aab
+**/*.apk
+**/*.dill
+**/*.so

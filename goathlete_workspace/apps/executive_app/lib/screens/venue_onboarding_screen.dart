@@ -28,6 +28,10 @@ class _VenueOnboardingScreenState extends ConsumerState<VenueOnboardingScreen> {
   final _notesController = TextEditingController();
   DateTime? _meetingDate;
 
+  // Step 5 Controllers (License & Pricing)
+  final _licenseController = TextEditingController();
+  final _sportsPricesController = TextEditingController();
+
   bool _isSubmitting = false;
 
   double? _latitude;
@@ -97,6 +101,8 @@ class _VenueOnboardingScreenState extends ConsumerState<VenueOnboardingScreen> {
     if (_selectedFiles.isNotEmpty) data['document_url'] = 'https://dummy-storage.goathlete.com/${_selectedFiles.first.name}';
     if (_meetingDate != null) data['meeting_date'] = _meetingDate!.toIso8601String();
     if (_notesController.text.isNotEmpty) data['meeting_notes'] = _notesController.text;
+    if (_licenseController.text.isNotEmpty) data['license_number'] = _licenseController.text;
+    if (_sportsPricesController.text.isNotEmpty) data['sports_prices'] = _sportsPricesController.text;
     
     try {
       await ref.read(venueSubmitProvider(data).future);
@@ -128,7 +134,7 @@ class _VenueOnboardingScreenState extends ConsumerState<VenueOnboardingScreen> {
         type: StepperType.vertical,
         currentStep: _currentStep,
         onStepContinue: () {
-          if (_currentStep < 3) {
+          if (_currentStep < 4) {
             setState(() {
               _currentStep += 1;
             });
@@ -229,7 +235,7 @@ class _VenueOnboardingScreenState extends ConsumerState<VenueOnboardingScreen> {
           Step(
             title: const Text('Meeting Schedule'),
             isActive: _currentStep >= 3,
-            state: _currentStep == 3 ? StepState.editing : StepState.indexed,
+            state: _currentStep > 3 ? StepState.complete : StepState.editing,
             content: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -259,6 +265,24 @@ class _VenueOnboardingScreenState extends ConsumerState<VenueOnboardingScreen> {
                   controller: _notesController,
                   decoration: const InputDecoration(labelText: 'Meeting Notes'),
                   maxLines: 3,
+                ),
+              ],
+            ),
+          ),
+          Step(
+            title: const Text('License & Pricing'),
+            isActive: _currentStep >= 4,
+            state: _currentStep == 4 ? StepState.editing : StepState.indexed,
+            content: Column(
+              children: [
+                TextField(
+                  controller: _licenseController,
+                  decoration: const InputDecoration(labelText: 'License Number (Optional)'),
+                ),
+                TextField(
+                  controller: _sportsPricesController,
+                  decoration: const InputDecoration(labelText: 'Sports Data Prices (JSON or text)'),
+                  maxLines: 4,
                 ),
               ],
             ),

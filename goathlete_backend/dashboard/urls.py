@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import DashboardConfigView, AdminAnalyticsView, GlobalConfigViewSet, PromotionalOfferViewSet
+from .views import DashboardConfigView, AdminAnalyticsView, GlobalConfigViewSet, PromotionalOfferViewSet, SportsNewsView
 
 router = DefaultRouter()
 router.register(r'global-config', GlobalConfigViewSet, basename='global-config')
@@ -9,5 +9,6 @@ router.register(r'promotional-offers', PromotionalOfferViewSet, basename='promot
 urlpatterns = [
     path('config/', DashboardConfigView.as_view(), name='dashboard-config'),
     path('admin-analytics/', AdminAnalyticsView.as_view(), name='admin-analytics'),
+    path('sports-news/', SportsNewsView.as_view(), name='sports-news'),
     path('', include(router.urls)),
 ]

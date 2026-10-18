@@ -2,7 +2,17 @@ from rest_framework import serializers
 from .models import Booking, Payment
 from datetime import datetime, date
 
+from .models import BookingRentalItem
+
+class BookingRentalItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BookingRentalItem
+        fields = '__all__'
+        read_only_fields = ('booking',)
+
 class BookingSerializer(serializers.ModelSerializer):
+    rental_items = BookingRentalItemSerializer(many=True, read_only=True)
+    
     class Meta:
         model = Booking
         fields = '__all__'

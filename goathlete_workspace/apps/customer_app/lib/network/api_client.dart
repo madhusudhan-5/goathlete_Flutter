@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-// Use local IP for physical device connection
-final String _baseUrl = 'http://192.168.1.233:8000/api/';
+// Update this domain/IP to match your actual production backend URL
+final String _baseUrl = 'http://72.60.193.38/api/';
+
+
 
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(

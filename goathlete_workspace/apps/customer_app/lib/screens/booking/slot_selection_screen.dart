@@ -127,14 +127,18 @@ class _SlotSelectionScreenState extends ConsumerState<SlotSelectionScreen> {
                       ),
                     ),
                     alignment: Alignment.center,
-                    child: Text(
-                      slot['time'] as String,
-                      style: TextStyle(
-                        color: isSelected
-                            ? GoAthleteColors.athleticOrange
-                            : (isAvailable ? Theme.of(context).colorScheme.onSurface : Colors.grey),
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        decoration: isAvailable ? TextDecoration.none : TextDecoration.lineThrough,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        slot['time'] as String,
+                        style: TextStyle(
+                          color: isSelected
+                              ? GoAthleteColors.athleticOrange
+                              : (isAvailable ? Theme.of(context).colorScheme.onSurface : Colors.grey),
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          decoration: isAvailable ? TextDecoration.none : TextDecoration.lineThrough,
+                        ),
                       ),
                     ),
                   ),

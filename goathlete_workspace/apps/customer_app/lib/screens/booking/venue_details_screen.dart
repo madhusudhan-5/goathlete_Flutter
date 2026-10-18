@@ -68,7 +68,14 @@ class VenueDetailsScreen extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(venueName, style: Theme.of(context).textTheme.headlineMedium),
+                      Expanded(
+                        child: Text(
+                          venueName, 
+                          style: Theme.of(context).textTheme.headlineMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Row(
                         children: [
                           const Icon(Icons.star, color: Colors.orange, size: 20),

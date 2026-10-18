@@ -19,8 +19,15 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   String? _selectedSkill;
   bool _isLoading = false;
 
-  final List<String> _sports = ['Cricket', 'Football', 'Badminton', 'Basketball', 'Tennis'];
-  final List<String> _skills = ['Beginner', 'Intermediate', 'Advanced', 'Professional'];
+  final List<String> _sports = [
+
+
+    'Cricket', 'Football', 'Badminton', 'Basketball', 'Tennis',
+    'Table Tennis', 'Volleyball', 'Squash', 'Kabaddi', 'Pickleball',
+    'Padel', 'Running', 'Swimming', 'Cycling', 'Gym / Fitness', 'Other'
+  ];
+  final List<String> _skills = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+
 
   void _handleCompleteProfile() async {
     if (_nameController.text.isNotEmpty && _selectedSport != null && _selectedSkill != null) {
@@ -134,12 +141,19 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     value: _selectedSkill,
-                    decoration: const InputDecoration(hintText: 'Select your level'),
+                    decoration: const InputDecoration(
+                      hintText: 'Select your level (1 - 10)',
+                      helperText: '1: Beginner • 5: Intermediate • 10: Elite / Pro',
+                    ),
                     items: _skills.map((skill) {
-                      return DropdownMenuItem(value: skill, child: Text(skill));
+                      return DropdownMenuItem(
+                        value: skill,
+                        child: Text(skill.length <= 2 ? 'Level $skill / 10' : skill),
+                      );
                     }).toList(),
                     onChanged: (value) => setState(() => _selectedSkill = value),
                   ),
+
                   const SizedBox(height: 24),
 
                   Text('Bio / Experience', style: Theme.of(context).textTheme.labelMedium),
@@ -154,13 +168,20 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             ),
             const SizedBox(height: 32),
             ElevatedButton(
-              onPressed: _handleCompleteProfile,
+              onPressed: _isLoading ? null : _handleCompleteProfile,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: GoAthleteColors.deepNavy,
               ),
-              child: const Text('Generate GOATH-ID', style: TextStyle(fontSize: 16)),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
+                  : const Text('Generate GOATH-ID', style: TextStyle(fontSize: 16)),
             ),
+
           ],
         ),
       ),

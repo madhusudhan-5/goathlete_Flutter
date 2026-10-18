@@ -51,8 +51,10 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
           final profilePicUrl = hasPic
               ? (profile['profile_picture'].toString().startsWith('http')
                   ? profile['profile_picture']
-                  : 'http://192.168.1.233:8000${profile['profile_picture']}') 
+                  : 'http://72.60.193.38${profile['profile_picture']}') 
               : null;
+
+
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
@@ -212,17 +214,20 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   }
 
   Widget _buildSettingsTile(BuildContext context, IconData icon, String title, {bool isSwitch = false, bool switchValue = false, Function(bool)? onSwitchChanged, VoidCallback? onTap}) {
-    return ListTile(
-      leading: Icon(icon, color: Theme.of(context).colorScheme.onSurfaceVariant),
-      title: Text(title, style: Theme.of(context).textTheme.bodyLarge),
-      trailing: isSwitch
-          ? Switch(
-              value: switchValue,
-              onChanged: onSwitchChanged,
-              activeColor: GoAthleteColors.athleticOrange,
-            )
-          : const Icon(Icons.chevron_right, color: Colors.grey),
-      onTap: isSwitch ? null : (onTap ?? () {}),
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        leading: Icon(icon, color: Theme.of(context).colorScheme.onSurfaceVariant),
+        title: Text(title, style: Theme.of(context).textTheme.bodyLarge),
+        trailing: isSwitch
+            ? Switch(
+                value: switchValue,
+                onChanged: onSwitchChanged,
+                activeThumbColor: GoAthleteColors.athleticOrange,
+              )
+            : const Icon(Icons.chevron_right, color: Colors.grey),
+        onTap: isSwitch ? null : (onTap ?? () {}),
+      ),
     );
   }
 }
@@ -241,10 +246,34 @@ class _EditProfileModalState extends ConsumerState<EditProfileModal> {
   late final TextEditingController _phoneController;
   late final TextEditingController _emailController;
   late final TextEditingController _goathIdController;
-  late final TextEditingController _sportController;
-  late final TextEditingController _skillController;
   late final TextEditingController _bioController;
   
+  String? _selectedSport;
+  String? _selectedSkill;
+
+  final List<String> _sportsList = [
+    'Cricket',
+    'Football',
+    'Badminton',
+    'Basketball',
+    'Tennis',
+    'Table Tennis',
+    'Volleyball',
+    'Squash',
+    'Kabaddi',
+    'Pickleball',
+    'Padel',
+    'Running',
+    'Swimming',
+    'Cycling',
+    'Gym / Fitness',
+    'Other'
+  ];
+
+  final List<String> _skillsList = [
+    '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'
+  ];
+
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
 
@@ -257,9 +286,27 @@ class _EditProfileModalState extends ConsumerState<EditProfileModal> {
     _phoneController = TextEditingController(text: p['phone_number'] ?? '');
     _emailController = TextEditingController(text: p['email'] ?? '');
     _goathIdController = TextEditingController(text: p['goath_id'] ?? '');
-    _sportController = TextEditingController(text: p['primary_sport'] ?? '');
-    _skillController = TextEditingController(text: p['skill_level'] ?? '');
     _bioController = TextEditingController(text: p['bio'] ?? '');
+
+    final initialSport = p['primary_sport']?.toString().trim();
+    if (initialSport != null && initialSport.isNotEmpty) {
+      if (_sportsList.contains(initialSport)) {
+        _selectedSport = initialSport;
+      } else {
+        _sportsList.add(initialSport);
+        _selectedSport = initialSport;
+      }
+    }
+
+    final initialSkill = p['skill_level']?.toString().trim();
+    if (initialSkill != null && initialSkill.isNotEmpty) {
+      if (_skillsList.contains(initialSkill)) {
+        _selectedSkill = initialSkill;
+      } else {
+        _skillsList.insert(0, initialSkill);
+        _selectedSkill = initialSkill;
+      }
+    }
   }
 
   Future<void> _pickImage() async {
@@ -276,8 +323,8 @@ class _EditProfileModalState extends ConsumerState<EditProfileModal> {
       firstName: _nameController.text,
       dob: _dobController.text,
       imagePath: _imageFile?.path,
-      primarySport: _sportController.text,
-      skillLevel: _skillController.text,
+      primarySport: _selectedSport,
+      skillLevel: _selectedSkill,
       bio: _bioController.text,
     );
     
@@ -319,7 +366,7 @@ class _EditProfileModalState extends ConsumerState<EditProfileModal> {
                     backgroundImage: _imageFile != null 
                         ? FileImage(_imageFile!) as ImageProvider
                         : (widget.profileData['profile_picture'] != null && widget.profileData['profile_picture'].toString().isNotEmpty
-                            ? NetworkImage(widget.profileData['profile_picture'].toString().startsWith('http') ? widget.profileData['profile_picture'] : 'http://192.168.1.233:8000${widget.profileData['profile_picture']}')
+                            ? NetworkImage(widget.profileData['profile_picture'].toString().startsWith('http') ? widget.profileData['profile_picture'] : 'http://72.60.193.38${widget.profileData['profile_picture']}')
                             : null),
                     child: (_imageFile == null && (widget.profileData['profile_picture'] == null || widget.profileData['profile_picture'].toString().isEmpty))
                         ? const Icon(Icons.person, size: 50, color: Colors.white)
@@ -330,7 +377,7 @@ class _EditProfileModalState extends ConsumerState<EditProfileModal> {
                     right: 0,
                     child: Container(
                       padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: GoAthleteColors.athleticOrange,
                         shape: BoxShape.circle,
                       ),
@@ -348,17 +395,71 @@ class _EditProfileModalState extends ConsumerState<EditProfileModal> {
             const SizedBox(height: 16),
             TextField(
               controller: _dobController,
-              decoration: const InputDecoration(labelText: 'Date of Birth (YYYY-MM-DD)'),
+              decoration: InputDecoration(
+                labelText: 'Date of Birth (YYYY-MM-DD)',
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.calendar_today, size: 20),
+                  onPressed: () async {
+                    DateTime initial = DateTime.tryParse(_dobController.text) ?? DateTime(2000, 1, 1);
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: initial,
+                      firstDate: DateTime(1900),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      _dobController.text = "${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+                    }
+                  },
+                ),
+              ),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _sportController,
-              decoration: const InputDecoration(labelText: 'Primary Sport'),
+            DropdownButtonFormField<String>(
+              isExpanded: true,
+              value: _selectedSport,
+              decoration: const InputDecoration(
+                labelText: 'Primary Sport',
+                prefixIcon: Icon(Icons.sports, color: GoAthleteColors.athleticOrange),
+              ),
+              hint: const Text('Select Primary Sport'),
+              items: _sportsList.map((sport) {
+                return DropdownMenuItem<String>(
+                  value: sport,
+                  child: Text(sport),
+                );
+              }).toList(),
+              onChanged: (val) {
+                setState(() {
+                  _selectedSport = val;
+                });
+              },
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _skillController,
-              decoration: const InputDecoration(labelText: 'Skill Level'),
+            DropdownButtonFormField<String>(
+              isExpanded: true,
+              value: _selectedSkill,
+              decoration: const InputDecoration(
+                labelText: 'Skill Level (1 - 10)',
+                prefixIcon: Icon(Icons.star_rate, color: GoAthleteColors.athleticOrange),
+                helperText: '1: Beginner • 5: Intermediate • 10: Elite / Pro',
+              ),
+              hint: const Text('Select Skill Level (1 - 10)'),
+              items: _skillsList.map((skill) {
+                return DropdownMenuItem<String>(
+                  value: skill,
+                  child: Text(
+                    skill.length <= 2 
+                      ? 'Level $skill / 10' 
+                      : skill,
+                  ),
+                );
+              }).toList(),
+              onChanged: (val) {
+                setState(() {
+                  _selectedSkill = val;
+                });
+              },
             ),
             const SizedBox(height: 16),
             TextField(
@@ -366,6 +467,7 @@ class _EditProfileModalState extends ConsumerState<EditProfileModal> {
               decoration: const InputDecoration(labelText: 'Bio'),
               maxLines: 3,
             ),
+
             const SizedBox(height: 16),
             TextField(
               controller: _phoneController,

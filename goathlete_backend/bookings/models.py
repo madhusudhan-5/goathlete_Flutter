@@ -48,3 +48,14 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"Payment {self.id} for Booking {self.booking.id} - {self.status}"
+
+from venues.models import RentalItem
+
+class BookingRentalItem(models.Model):
+    booking = models.ForeignKey(Booking, related_name='rental_items', on_delete=models.CASCADE)
+    item = models.ForeignKey(RentalItem, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    is_approved = models.BooleanField(default=False)
+    
+    def __str__(self):
+        return f"{self.quantity} x {self.item.name} for Booking {self.booking.id}"

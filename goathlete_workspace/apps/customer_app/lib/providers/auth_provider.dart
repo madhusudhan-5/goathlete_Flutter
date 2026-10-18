@@ -94,7 +94,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool?> signInWithGoogle() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn();
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        serverClientId: '740629489616-c6j07tvj7gg7a6ulfpsu8tmptf151adu.apps.googleusercontent.com',
+      );
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
         state = state.copyWith(isLoading: false);

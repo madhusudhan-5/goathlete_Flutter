@@ -15,7 +15,7 @@ final vendorCreateBookingProvider = FutureProvider.family<bool, Map<String, dyna
   final dio = ref.read(dioProvider);
   try {
     final response = await dio.post(
-      'vendor-bookings/',
+      'bookings/vendor-bookings/',
       data: data,
     );
     return response.statusCode == 201;
@@ -27,7 +27,7 @@ final vendorCreateBookingProvider = FutureProvider.family<bool, Map<String, dyna
 final vendorVenuesProvider = FutureProvider<List<dynamic>>((ref) async {
   final dio = ref.read(dioProvider);
   try {
-    final response = await dio.get('vendor-venues/');
+    final response = await dio.get('venues/vendor-venues/');
     return response.data as List<dynamic>;
   } catch (e) {
     throw Exception('Failed to load vendor venues: $e');
@@ -39,11 +39,61 @@ final vendorUpdateVenueProvider = FutureProvider.family<bool, Map<String, dynami
   try {
     final id = data['id'];
     final response = await dio.patch(
-      'vendor-venues/$id/',
+      'venues/vendor-venues/$id/',
       data: data,
     );
     return response.statusCode == 200;
   } catch (e) {
     throw Exception('Failed to update venue: $e');
+  }
+});
+
+final vendorPartnersProvider = FutureProvider.family<List<dynamic>, int>((ref, venueId) async {
+  final dio = ref.read(dioProvider);
+  try {
+    final response = await dio.get('venues/vendor-partners/', queryParameters: {'venue': venueId});
+    return response.data as List<dynamic>;
+  } catch (e) {
+    return [];
+  }
+});
+
+final addVendorPartnerProvider = FutureProvider.family<bool, Map<String, dynamic>>((ref, data) async {
+  final dio = ref.read(dioProvider);
+  try {
+    final response = await dio.post('venues/vendor-partners/', data: data);
+    return response.statusCode == 201;
+  } catch (e) {
+    throw Exception('Failed to add vendor partner: $e');
+  }
+});
+
+final rentalItemsProvider = FutureProvider.family<List<dynamic>, int>((ref, venueId) async {
+  final dio = ref.read(dioProvider);
+  try {
+    final response = await dio.get('venues/rental-items/', queryParameters: {'venue': venueId});
+    return response.data as List<dynamic>;
+  } catch (e) {
+    return [];
+  }
+});
+
+final addRentalItemProvider = FutureProvider.family<bool, Map<String, dynamic>>((ref, data) async {
+  final dio = ref.read(dioProvider);
+  try {
+    final response = await dio.post('venues/rental-items/', data: data);
+    return response.statusCode == 201;
+  } catch (e) {
+    throw Exception('Failed to add rental item: $e');
+  }
+});
+
+final approveBookingRentalItemProvider = FutureProvider.family<bool, int>((ref, bookingRentalItemId) async {
+  final dio = ref.read(dioProvider);
+  try {
+    final response = await dio.post('bookings/rental-items/$bookingRentalItemId/approve/');
+    return response.statusCode == 200;
+  } catch (e) {
+    throw Exception('Failed to approve rental item booking: $e');
   }
 });

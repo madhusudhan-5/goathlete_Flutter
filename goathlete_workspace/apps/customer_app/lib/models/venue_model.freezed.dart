@@ -26,6 +26,8 @@ mixin _$Venue {
   String get description => throw _privateConstructorUsedError;
   String get location => throw _privateConstructorUsedError;
   String get distance => throw _privateConstructorUsedError;
+  double? get latitude => throw _privateConstructorUsedError;
+  double? get longitude => throw _privateConstructorUsedError;
   num get rating => throw _privateConstructorUsedError;
   @JsonKey(name: 'reviews_count')
   int get reviewsCount => throw _privateConstructorUsedError;
@@ -56,6 +58,8 @@ abstract class $VenueCopyWith<$Res> {
     String description,
     String location,
     String distance,
+    double? latitude,
+    double? longitude,
     num rating,
     @JsonKey(name: 'reviews_count') int reviewsCount,
     @JsonKey(name: 'image_url') String imageUrl,
@@ -85,6 +89,8 @@ class _$VenueCopyWithImpl<$Res, $Val extends Venue>
     Object? description = null,
     Object? location = null,
     Object? distance = null,
+    Object? latitude = freezed,
+    Object? longitude = freezed,
     Object? rating = null,
     Object? reviewsCount = null,
     Object? imageUrl = null,
@@ -114,6 +120,14 @@ class _$VenueCopyWithImpl<$Res, $Val extends Venue>
                 ? _value.distance
                 : distance // ignore: cast_nullable_to_non_nullable
                       as String,
+            latitude: freezed == latitude
+                ? _value.latitude
+                : latitude // ignore: cast_nullable_to_non_nullable
+                      as double?,
+            longitude: freezed == longitude
+                ? _value.longitude
+                : longitude // ignore: cast_nullable_to_non_nullable
+                      as double?,
             rating: null == rating
                 ? _value.rating
                 : rating // ignore: cast_nullable_to_non_nullable
@@ -158,6 +172,8 @@ abstract class _$$VenueImplCopyWith<$Res> implements $VenueCopyWith<$Res> {
     String description,
     String location,
     String distance,
+    double? latitude,
+    double? longitude,
     num rating,
     @JsonKey(name: 'reviews_count') int reviewsCount,
     @JsonKey(name: 'image_url') String imageUrl,
@@ -186,6 +202,8 @@ class __$$VenueImplCopyWithImpl<$Res>
     Object? description = null,
     Object? location = null,
     Object? distance = null,
+    Object? latitude = freezed,
+    Object? longitude = freezed,
     Object? rating = null,
     Object? reviewsCount = null,
     Object? imageUrl = null,
@@ -215,6 +233,14 @@ class __$$VenueImplCopyWithImpl<$Res>
             ? _value.distance
             : distance // ignore: cast_nullable_to_non_nullable
                   as String,
+        latitude: freezed == latitude
+            ? _value.latitude
+            : latitude // ignore: cast_nullable_to_non_nullable
+                  as double?,
+        longitude: freezed == longitude
+            ? _value.longitude
+            : longitude // ignore: cast_nullable_to_non_nullable
+                  as double?,
         rating: null == rating
             ? _value.rating
             : rating // ignore: cast_nullable_to_non_nullable
@@ -253,6 +279,8 @@ class _$VenueImpl implements _Venue {
     required this.description,
     required this.location,
     required this.distance,
+    this.latitude,
+    this.longitude,
     required this.rating,
     @JsonKey(name: 'reviews_count') required this.reviewsCount,
     @JsonKey(name: 'image_url') required this.imageUrl,
@@ -275,6 +303,10 @@ class _$VenueImpl implements _Venue {
   final String location;
   @override
   final String distance;
+  @override
+  final double? latitude;
+  @override
+  final double? longitude;
   @override
   final num rating;
   @override
@@ -304,7 +336,7 @@ class _$VenueImpl implements _Venue {
 
   @override
   String toString() {
-    return 'Venue(id: $id, name: $name, description: $description, location: $location, distance: $distance, rating: $rating, reviewsCount: $reviewsCount, imageUrl: $imageUrl, pricePerHour: $pricePerHour, sports: $sports, amenities: $amenities)';
+    return 'Venue(id: $id, name: $name, description: $description, location: $location, distance: $distance, latitude: $latitude, longitude: $longitude, rating: $rating, reviewsCount: $reviewsCount, imageUrl: $imageUrl, pricePerHour: $pricePerHour, sports: $sports, amenities: $amenities)';
   }
 
   @override
@@ -320,6 +352,10 @@ class _$VenueImpl implements _Venue {
                 other.location == location) &&
             (identical(other.distance, distance) ||
                 other.distance == distance) &&
+            (identical(other.latitude, latitude) ||
+                other.latitude == latitude) &&
+            (identical(other.longitude, longitude) ||
+                other.longitude == longitude) &&
             (identical(other.rating, rating) || other.rating == rating) &&
             (identical(other.reviewsCount, reviewsCount) ||
                 other.reviewsCount == reviewsCount) &&
@@ -343,6 +379,8 @@ class _$VenueImpl implements _Venue {
     description,
     location,
     distance,
+    latitude,
+    longitude,
     rating,
     reviewsCount,
     imageUrl,
@@ -372,6 +410,8 @@ abstract class _Venue implements Venue {
     required final String description,
     required final String location,
     required final String distance,
+    final double? latitude,
+    final double? longitude,
     required final num rating,
     @JsonKey(name: 'reviews_count') required final int reviewsCount,
     @JsonKey(name: 'image_url') required final String imageUrl,
@@ -392,6 +432,10 @@ abstract class _Venue implements Venue {
   String get location;
   @override
   String get distance;
+  @override
+  double? get latitude;
+  @override
+  double? get longitude;
   @override
   num get rating;
   @override

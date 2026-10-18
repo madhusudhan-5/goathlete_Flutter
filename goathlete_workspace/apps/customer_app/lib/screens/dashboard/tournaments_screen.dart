@@ -120,7 +120,28 @@ class _TournamentsScreenState extends ConsumerState<TournamentsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(tournament['name'] ?? 'Tournament', style: Theme.of(context).textTheme.titleLarge),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      tournament['name'] ?? 'Tournament',
+                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: GoAthleteColors.athleticOrange.withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      tournament['sport_name'] ?? 'Sport',
+                                      style: const TextStyle(color: GoAthleteColors.athleticOrange, fontWeight: FontWeight.bold, fontSize: 12),
+                                    ),
+                                  ),
+                                ],
+                              ),
                               const SizedBox(height: 12),
                               Row(
                                 children: [
@@ -136,11 +157,13 @@ class _TournamentsScreenState extends ConsumerState<TournamentsScreen> {
                                   const SizedBox(width: 4),
                                   Text('${tournament['start_date'] ?? ''}', style: Theme.of(context).textTheme.bodyMedium),
                                   const SizedBox(width: 16),
-                                  Icon(Icons.group, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                  Icon(Icons.sports, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
                                   const SizedBox(width: 4),
-                                  Text('${tournament['max_teams'] ?? 0} Teams', style: Theme.of(context).textTheme.bodyMedium),
+                                  Expanded(child: Text('Official: ${tournament['default_umpire_name'] ?? 'Organizer'}', style: Theme.of(context).textTheme.bodyMedium, overflow: TextOverflow.ellipsis)),
                                 ],
                               ),
+                              const Divider(height: 24),
+                              _TournamentMatchesPreview(tournamentId: tournament['id']),
                             ],
                           ),
                         )
@@ -161,3 +184,119 @@ class _TournamentsScreenState extends ConsumerState<TournamentsScreen> {
     );
   }
 }
+
+class _TournamentMatchesPreview extends ConsumerWidget {
+  final int tournamentId;
+  const _TournamentMatchesPreview({required this.tournamentId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final matchesAsync = ref.watch(tournamentMatchesProvider(tournamentId));
+
+    return matchesAsync.when(
+      data: (matches) {
+        if (matches.isEmpty) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('No matches scheduled yet', style: TextStyle(color: Colors.grey, fontSize: 13)),
+              TextButton.icon(
+                icon: const Icon(Icons.shuffle, size: 16),
+                label: const Text('Generate Fixtures', style: TextStyle(fontSize: 12)),
+                onPressed: () async {
+                  final msg = await ref.read(tournamentProvider.notifier).generateFixtures(tournamentId);
+                  if (msg != null) {
+                    ref.refresh(tournamentMatchesProvider(tournamentId));
+                  }
+                },
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Fixtures & Matches (${matches.length})',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                Text(
+                  'Tap match to open scoreboard',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...matches.map((m) {
+              final teamA = m['team_a_name'] ?? 'Team A';
+              final teamB = m['team_b_name'] ?? 'Team B';
+              final status = m['status'] ?? 'Scheduled';
+              final score = m['current_score'] ?? {};
+              final scoreText = '${score['team_a_score'] ?? 0} - ${score['team_b_score'] ?? 0}';
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: status == 'Ongoing' ? Colors.green : Colors.transparent,
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$teamA vs $teamB',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            status == 'Ongoing' ? '🔴 LIVE: $scoreText' : (status == 'Completed' ? 'Winner: ${m['winner_name'] ?? 'TBD'} ($scoreText)' : 'Status: $status'),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: status == 'Ongoing' ? Colors.green[800] : Colors.grey[700],
+                              fontWeight: status == 'Ongoing' ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (status != 'Completed')
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: status == 'Ongoing' ? Colors.green : GoAthleteColors.athleticOrange,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        ),
+                        onPressed: () {
+                          context.push('/live-scorer/${m['id']}');
+                        },
+                        child: Text(
+                          status == 'Ongoing' ? 'Live Score' : 'Open Match',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        );
+      },
+      loading: () => const LinearProgressIndicator(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+}
+

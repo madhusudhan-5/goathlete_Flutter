@@ -17,10 +17,10 @@ import 'package:customer_app/screens/dashboard/upcoming_events_screen.dart';
 import 'package:customer_app/screens/community/play_tribes_screen.dart';
 import 'package:customer_app/screens/profile/notifications_screen.dart';
 import 'package:customer_app/screens/profile/profile_details_screen.dart';
-import 'package:customer_app/screens/organizer/organizer_hub_screen.dart';
 import 'package:customer_app/screens/organizer/create_tournament_wizard.dart';
 import 'package:customer_app/screens/organizer/manage_tournaments_screen.dart';
 import 'package:customer_app/screens/team/create_team_screen.dart';
+import 'package:customer_app/screens/team/tournament_teams_screen.dart';
 import 'package:customer_app/screens/team/qr_scanner_screen.dart';
 import 'package:customer_app/screens/scoring/live_scorer_screen.dart';
 
@@ -102,9 +102,27 @@ final goRouter = GoRouter(
       builder: (context, state) => const ManageTournamentsScreen(),
     ),
     GoRoute(
+      path: '/tournament-teams/:tournamentId',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) {
+        final tId = int.tryParse(state.pathParameters['tournamentId'] ?? '') ?? 0;
+        final tName = state.uri.queryParameters['name'];
+        return TournamentTeamsScreen(tournamentId: tId, tournamentName: tName);
+      },
+    ),
+    GoRoute(
       path: '/create-team',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const CreateTeamScreen(),
+      builder: (context, state) {
+        final tIdStr = state.uri.queryParameters['tournamentId'];
+        final teamIdStr = state.uri.queryParameters['teamId'];
+        final teamName = state.uri.queryParameters['teamName'];
+        return CreateTeamScreen(
+          initialTournamentId: tIdStr != null ? int.tryParse(tIdStr) : null,
+          initialTeamId: teamIdStr != null ? int.tryParse(teamIdStr) : null,
+          initialTeamName: teamName,
+        );
+      },
     ),
     GoRoute(
       path: '/qr-scanner',
@@ -143,8 +161,8 @@ final goRouter = GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/favorites',
-              builder: (context, state) => const FavoritesScreen(),
+              path: '/profile',
+              builder: (context, state) => const ProfileDetailsScreen(),
             ),
           ],
         ),

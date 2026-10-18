@@ -167,3 +167,27 @@ class PaymentConfirmView(APIView):
             return Response({'error': 'Payment not found.'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+from .models import BookingRentalItem
+from .serializers import BookingRentalItemSerializer
+
+class BookingRentalItemViewSet(viewsets.ModelViewSet):
+    serializer_class = BookingRentalItemSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        from django.db import models
+        return BookingRentalItem.objects.filter(models.Q(booking__user=user) | models.Q(booking__venue__owner=user)).distinct()
+
+    from rest_framework.decorators import action
+    from rest_framework.response import Response
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def approve(self, request, pk=None):
+        item = self.get_object()
+        if request.user != item.booking.venue.owner:
+            return Response({'error': 'Not authorized'}, status=403)
+        item.is_approved = True
+        item.save()
+        return Response({'status': 'approved'})

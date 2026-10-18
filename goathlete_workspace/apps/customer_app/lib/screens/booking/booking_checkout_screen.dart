@@ -52,7 +52,14 @@ class _BookingCheckoutScreenState extends ConsumerState<BookingCheckoutScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(venueName, style: Theme.of(context).textTheme.titleLarge),
+                      Expanded(
+                        child: Text(
+                          venueName, 
+                          style: Theme.of(context).textTheme.titleLarge,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       const Icon(Icons.sports_soccer, color: GoAthleteColors.athleticOrange),
                     ],
                   ),

@@ -24,10 +24,13 @@ class SportEvent(models.Model):
 class Tournament(models.Model):
     name = models.CharField(max_length=200)
     organizer = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='organized_tournaments', null=True, blank=True)
+    default_umpire = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='default_officiated_tournaments')
     sport_template = models.ForeignKey(SportTemplate, on_delete=models.CASCADE)
     start_date = models.DateField()
     end_date = models.DateField()
     location = models.CharField(max_length=200)
+    venue = models.ForeignKey('venues.Venue', on_delete=models.SET_NULL, null=True, blank=True, related_name='tournaments')
+    status = models.CharField(max_length=50, choices=[('Scheduled', 'Scheduled'), ('Ongoing', 'Ongoing'), ('Completed', 'Completed')], default='Scheduled')
     is_active = models.BooleanField(default=True)
     tournament_rules = models.JSONField(default=dict, blank=True, help_text="Overrides for default sport rules.")
 
@@ -36,11 +39,11 @@ class Tournament(models.Model):
 
 class Team(models.Model):
     name = models.CharField(max_length=100)
-    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='teams')
-    captain = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, related_name='captained_teams')
+    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='teams', null=True, blank=True)
+    captain = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='captained_teams')
     
     def __str__(self):
-        return f"{self.name} - {self.tournament.name}"
+        return f"{self.name} - {self.tournament.name if self.tournament else 'Club Team'}"
 
 class TournamentPlayer(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='players')
@@ -57,6 +60,7 @@ class Match(models.Model):
     tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='matches')
     team_a = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='matches_as_a')
     team_b = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='matches_as_b')
+    umpire = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='officiated_matches')
     match_date = models.DateTimeField()
     status = models.CharField(max_length=50, choices=[('Scheduled', 'Scheduled'), ('Ongoing', 'Ongoing'), ('Completed', 'Completed')], default='Scheduled')
     winner = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True, related_name='matches_won')

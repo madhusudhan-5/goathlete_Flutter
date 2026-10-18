@@ -16,12 +16,15 @@ class ProfileSerializer(serializers.ModelSerializer):
     skill_level = serializers.CharField(source='profile.skill_level', read_only=True)
     bio = serializers.CharField(source='profile.bio', read_only=True)
 
+    requires_password_change = serializers.BooleanField(source='profile.requires_password_change', read_only=True)
+
     class Meta:
         model = User
         fields = (
             'id', 'username', 'email', 'first_name', 'last_name',
             'phone_number', 'goath_id', 'role', 'date_of_birth',
-            'profile_picture', 'primary_sport', 'skill_level', 'bio'
+            'profile_picture', 'primary_sport', 'skill_level', 'bio',
+            'requires_password_change'
         )
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -47,14 +50,31 @@ class ExecutiveSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'phone_number', 'goath_id')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'phone_number', 'goath_id', 'is_active')
+
+    def validate(self, data):
+        # Flattened phone_number might be inside profile dict or directly on self.initial_data
+        # Actually since source='profile.phone_number', it's in data['profile']['phone_number']
+        phone = data.get('profile', {}).get('phone_number')
+        if not phone and hasattr(self, 'initial_data'):
+            phone = self.initial_data.get('profile', {}).get('phone_number')
+            
+        if phone:
+            from .models import UserProfile
+            existing = UserProfile.objects.filter(phone_number=phone).first()
+            if existing:
+                raise serializers.ValidationError({"phone_number": f"User already registered as {existing.role}"})
+        return data
 
     def create(self, validated_data):
         profile_data = validated_data.pop('profile', {})
         user = User.objects.create(**validated_data)
+        user.set_password('Test@12345')
+        user.save()
         from .models import UserProfile
         profile, created = UserProfile.objects.get_or_create(user=user)
         profile.role = 'EXECUTIVE'
+        profile.requires_password_change = True
         if 'phone_number' in profile_data:
             profile.phone_number = profile_data['phone_number']
         profile.save()
