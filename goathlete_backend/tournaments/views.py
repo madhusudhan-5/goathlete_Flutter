@@ -338,11 +338,18 @@ class TeamViewSet(viewsets.ModelViewSet):
         if team.captain != profile and (not team.tournament or team.tournament.organizer != profile) and not request.user.is_superuser:
             return Response({'error': 'Only team captain or tournament organizer can modify the roster.'}, status=status.HTTP_403_FORBIDDEN)
         
-        # Disallow player modifications if tournament match fixtures have already been scheduled
-        if team.tournament and Match.objects.filter(tournament=team.tournament).exists():
+        # Disallow player modifications if any tournament match has started or completed
+        if team.tournament and Match.objects.filter(tournament=team.tournament, status__in=['Ongoing', 'Completed']).exists():
             return Response({
-                'error': 'Roster is locked. Cannot add players after match fixtures are scheduled.'
+                'error': 'Roster is locked. Cannot add players after matches have started.'
             }, status=status.HTTP_400_BAD_REQUEST)
+
+        if team.tournament and team.tournament.sport_template:
+            max_p = team.tournament.sport_template.max_players_per_team
+            if max_p and team.players.count() >= max_p:
+                return Response({
+                    'error': f'Team "{team.name}" is full ({max_p}/{max_p} players).'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         goath_id = request.data.get('goath_id')
         phone_number = request.data.get('phone_number')
@@ -400,6 +407,87 @@ class TeamViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
+    def join_team(self, request, pk=None):
+        """
+        Allows a registered Customer App player to join a tournament team after paying the entry fee (or free).
+        """
+        team = self.get_object()
+        profile = getattr(request.user, 'profile', None)
+        if not profile:
+            return Response({'error': 'Only registered athletes can join a tournament team.'}, status=status.HTTP_403_FORBIDDEN)
+
+        tournament = team.tournament
+        if not tournament:
+            return Response({'error': 'This team is not linked to an active tournament.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if tournament.status == 'Completed':
+            return Response({'error': 'This tournament has already ended.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if Match.objects.filter(tournament=tournament, status__in=['Ongoing', 'Completed']).exists():
+            return Response({'error': 'Registration closed: Matches have already started.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if player is already in a team in this tournament
+        existing_entry = TournamentPlayer.objects.filter(team__tournament=tournament, player=profile).select_related('team').first()
+        if existing_entry:
+            return Response({
+                'error': f'You have already joined team "{existing_entry.team.name}" in this tournament.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        max_players = tournament.sport_template.max_players_per_team or 11
+        current_count = team.players.count()
+        if current_count >= max_players:
+            return Response({
+                'error': f'No slots available in "{team.name}" ({current_count}/{max_players} players full).'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        rules = tournament.tournament_rules or {}
+        player_fee = float(rules.get('player_fee') or 0.0)
+        fee_paid_flag = request.data.get('fee_paid', False)
+
+        if player_fee > 0 and not fee_paid_flag:
+            return Response({
+                'error': f'Entry fee payment of ₹{int(player_fee)} is required to join this tournament.',
+                'requires_payment': True,
+                'player_fee': player_fee,
+            }, status=status.HTTP_402_PAYMENT_REQUIRED)
+
+        tp = TournamentPlayer.objects.create(
+            team=team,
+            player=profile,
+            fee_paid=player_fee if player_fee > 0 else 0.0,
+            payment_status='PAID' if player_fee > 0 else 'FREE',
+        )
+
+        # Find first scheduled match time for this team if available
+        first_match = Match.objects.filter(tournament=tournament).order_by('match_date').first()
+        match_time_str = first_match.match_date.strftime('%d %b %Y, %I:%M %p') if first_match and first_match.match_date else f"{tournament.start_date} (09:00 AM)"
+        player_name = f"{profile.user.first_name} {profile.user.last_name}".strip() or profile.user.username
+
+        return Response({
+            'message': f'Successfully joined team "{team.name}"!',
+            'notification_title': '🎉 Successfully Joined Team!',
+            'notification_body': (
+                f'Hi {player_name} ({profile.goath_id}), you have joined "{team.name}" '
+                f'for {tournament.name} ({tournament.sport_template.name}).\n'
+                f'📅 Date & Time: {match_time_str}\n'
+                f'📍 Venue: {tournament.location}\n'
+                f'💳 Entry Fee: {"₹" + str(int(player_fee)) + " (Paid)" if player_fee > 0 else "Free Entry"}'
+            ),
+            'team_id': team.id,
+            'team_name': team.name,
+            'tournament_id': tournament.id,
+            'tournament_name': tournament.name,
+            'sport_name': tournament.sport_template.name,
+            'start_date': str(tournament.start_date),
+            'end_date': str(tournament.end_date),
+            'match_datetime': match_time_str,
+            'location': tournament.location,
+            'fee_paid': player_fee,
+            'payment_status': tp.payment_status,
+            'remaining_team_slots': max(0, max_players - (current_count + 1)),
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
     def remove_player(self, request, pk=None):
         team = self.get_object()
         profile = getattr(request.user, 'profile', None)
@@ -407,10 +495,10 @@ class TeamViewSet(viewsets.ModelViewSet):
         if team.captain != profile and (not team.tournament or team.tournament.organizer != profile) and not request.user.is_superuser:
             return Response({'error': 'Only team captain or tournament organizer can modify the roster.'}, status=status.HTTP_403_FORBIDDEN)
 
-        # Disallow player modifications if tournament match fixtures have already been scheduled
-        if team.tournament and Match.objects.filter(tournament=team.tournament).exists():
+        # Disallow player modifications if tournament matches have already started
+        if team.tournament and Match.objects.filter(tournament=team.tournament, status__in=['Ongoing', 'Completed']).exists():
             return Response({
-                'error': 'Roster is locked. Cannot remove players after match fixtures are scheduled.'
+                'error': 'Roster is locked. Cannot remove players after matches have started.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         goath_id = request.data.get('goath_id')

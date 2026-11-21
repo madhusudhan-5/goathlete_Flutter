@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../services/app_storage.dart';
 
 final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
   return ThemeModeNotifier();
@@ -12,7 +12,7 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
   }
 
   Future<void> _loadTheme() async {
-    const storage = FlutterSecureStorage();
+    const storage = AppStorage();
     final theme = await storage.read(key: 'theme_mode');
     if (theme == 'dark') {
       state = ThemeMode.dark;
@@ -23,7 +23,7 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
 
   Future<void> toggleTheme(bool isDark) async {
     state = isDark ? ThemeMode.dark : ThemeMode.light;
-    const storage = FlutterSecureStorage();
+    const storage = AppStorage();
     await storage.write(key: 'theme_mode', value: isDark ? 'dark' : 'light');
   }
 }

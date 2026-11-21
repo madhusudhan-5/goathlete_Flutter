@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/tournament_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../widgets/user_search_picker.dart';
+import '../profile/notifications_screen.dart';
 
 class TournamentTeamsScreen extends ConsumerStatefulWidget {
   final int tournamentId;
@@ -452,11 +453,112 @@ class _TournamentTeamsScreenState extends ConsumerState<TournamentTeamsScreen> {
   }
 
 
+  void _joinTeamDirectly(Map<String, dynamic> team) async {
+    final int teamId = team['id'] as int;
+    final String teamName = team['name']?.toString() ?? 'Team';
+    final int availableSlots = (team['available_slots'] as num?)?.toInt() ?? 0;
+
+    if (availableSlots <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No slots available in "$teamName". This team is full.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final result = await ref
+        .read(tournamentProvider.notifier)
+        .joinTournamentTeam(teamId, feePaid: true);
+
+    if (!mounted) return;
+
+    if (result != null) {
+      ref.invalidate(tournamentTeamsProvider(widget.tournamentId));
+      ref.invalidate(activeTournamentsProvider);
+
+      final String tName =
+          result['tournament_name']?.toString() ?? widget.tournamentName ?? 'Tournament';
+      final String matchDateTime =
+          result['match_datetime']?.toString() ?? 'Scheduled';
+      final String venue = result['location']?.toString() ?? 'Venue';
+      final double feePaid = (result['fee_paid'] as num?)?.toDouble() ?? 0.0;
+      final String payStatus =
+          feePaid > 0 ? '₹${feePaid.toInt()} Paid' : 'Free Entry';
+
+      ref.read(appNotificationsProvider.notifier).addNotification(
+            AppNotificationItem(
+              title: '🎉 Successfully Joined Team "$teamName"!',
+              body:
+                  'You have joined "$teamName" in $tName. Be ready at the venue on time!',
+              timestamp: matchDateTime,
+              tournamentName: tName,
+              teamName: teamName,
+              matchDateTime: matchDateTime,
+              location: venue,
+              paymentStatus: payStatus,
+            ),
+          );
+
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green, size: 28),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Successfully Joined Team!',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('🏆 Tournament: $tName'),
+              const SizedBox(height: 6),
+              Text('🛡️ Team: $teamName', style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              Text('📅 Date & Time: $matchDateTime', style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              Text('📍 Venue: $venue'),
+              const SizedBox(height: 6),
+              Text('💳 Entry: $payStatus', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: GoAthleteColors.athleticOrange,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Great!'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      final err = ref.read(tournamentProvider).error ?? 'Could not join team.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(err), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final teamsAsync = ref.watch(tournamentTeamsProvider(widget.tournamentId));
     final matchesAsync = ref.watch(tournamentMatchesProvider(widget.tournamentId));
-    final hasFixtures = (matchesAsync.value?.isNotEmpty ?? false);
+    final hasFixtures = (matchesAsync.value ?? []).any(
+      (m) => m['status'] == 'Ongoing' || m['status'] == 'Completed',
+    );
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -580,6 +682,10 @@ class _TournamentTeamsScreenState extends ConsumerState<TournamentTeamsScreen> {
                 final teamName = team['name'] ?? 'Team ${teamIndex + 1}';
                 final captainName = team['captain_name'] ?? 'Captain';
                 final players = (team['players'] as List<dynamic>?) ?? [];
+                final int maxPlayers = (team['max_players'] as num?)?.toInt() ?? 11;
+                final int availableSlots = (team['available_slots'] as num?)?.toInt() ??
+                    (maxPlayers - players.length);
+                final bool hasTeamSlots = availableSlots > 0;
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16),
@@ -607,12 +713,20 @@ class _TournamentTeamsScreenState extends ConsumerState<TournamentTeamsScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: GoAthleteColors.athleticOrange.withValues(alpha: 0.15),
+                              color: hasTeamSlots
+                                  ? Colors.green.withValues(alpha: 0.15)
+                                  : Colors.red.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              '${players.length} Players',
-                              style: const TextStyle(color: GoAthleteColors.athleticOrange, fontSize: 11, fontWeight: FontWeight.bold),
+                              hasTeamSlots
+                                  ? '${players.length}/$maxPlayers • $availableSlots Open'
+                                  : '${players.length}/$maxPlayers • Full',
+                              style: TextStyle(
+                                color: hasTeamSlots ? Colors.green.shade800 : Colors.red.shade800,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -657,20 +771,47 @@ class _TournamentTeamsScreenState extends ConsumerState<TournamentTeamsScreen> {
                                     ],
                                   ),
                                 )
-                              else
-                                ElevatedButton.icon(
-                                  icon: const Icon(Icons.person_add, size: 16),
-                                  label: const Text('Add Player', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: GoAthleteColors.athleticOrange,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                else
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      OutlinedButton.icon(
+                                        icon: Icon(
+                                          hasTeamSlots ? Icons.how_to_reg : Icons.block,
+                                          size: 15,
+                                        ),
+                                        label: Text(
+                                          hasTeamSlots ? 'Join Team' : 'Team Full',
+                                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: hasTeamSlots ? Colors.green.shade700 : Colors.red,
+                                          side: BorderSide(
+                                            color: hasTeamSlots ? Colors.green.shade700 : Colors.red,
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                        ),
+                                        onPressed: () => _joinTeamDirectly(team),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      ElevatedButton.icon(
+                                        icon: const Icon(Icons.person_add, size: 15),
+                                        label: const Text('Add Player', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: GoAthleteColors.athleticOrange,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                        ),
+                                        onPressed: hasTeamSlots ? () => _showAddPlayerSheet(team) : null,
+                                      ),
+                                    ],
                                   ),
-                                  onPressed: () => _showAddPlayerSheet(team),
-                                ),
                             ],
                           ),
                         ),

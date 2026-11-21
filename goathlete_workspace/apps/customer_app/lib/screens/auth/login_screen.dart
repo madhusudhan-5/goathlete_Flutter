@@ -38,7 +38,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _otpSent = true;
         _devOtp = devOtp;
       });
-      // Auto-fill for dev convenience
       _otpController.text = devOtp;
     }
   }
@@ -142,7 +141,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             controller: _otpController,
                             keyboardType: TextInputType.number,
                             decoration: const InputDecoration(
-                              hintText: 'Enter OTP',
+                              hintText: 'Enter 6-digit OTP',
                             ),
                           ),
                           if (_devOtp != null)

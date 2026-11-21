@@ -45,7 +45,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.storefront, size: 80, color: GoAthleteColors.athleticOrange),
+              const Icon(Icons.storefront, size: 80, color: Color(0xFF13A861)),
               const SizedBox(height: 16),
               Text(
                 'Vendor Portal',

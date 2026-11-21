@@ -1,10 +1,11 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'dart:io';
+import '../../config/app_config.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/profile_provider.dart';
@@ -47,12 +48,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
           final fullName = '$firstName $lastName'.trim();
           final phone = profile['phone_number'] ?? '';
           final goathId = profile['goath_id'] ?? '';
-          final hasPic = profile['profile_picture'] != null && profile['profile_picture'].toString().isNotEmpty;
-          final profilePicUrl = hasPic
-              ? (profile['profile_picture'].toString().startsWith('http')
-                  ? profile['profile_picture']
-                  : 'http://72.60.193.38${profile['profile_picture']}') 
-              : null;
+          final profilePicUrl = AppConfig.resolveMediaUrl(profile['profile_picture']);
 
 
 
@@ -274,7 +270,8 @@ class _EditProfileModalState extends ConsumerState<EditProfileModal> {
     '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'
   ];
 
-  File? _imageFile;
+  Uint8List? _imageBytes;
+  String? _imageName;
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -312,8 +309,11 @@ class _EditProfileModalState extends ConsumerState<EditProfileModal> {
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
+      final bytes = await image.readAsBytes();
+      if (!mounted) return;
       setState(() {
-        _imageFile = File(image.path);
+        _imageBytes = bytes;
+        _imageName = image.name;
       });
     }
   }
@@ -322,7 +322,8 @@ class _EditProfileModalState extends ConsumerState<EditProfileModal> {
     final success = await ref.read(authProvider.notifier).updateProfileWithImage(
       firstName: _nameController.text,
       dob: _dobController.text,
-      imagePath: _imageFile?.path,
+      imageBytes: _imageBytes,
+      imageName: _imageName,
       primarySport: _selectedSport,
       skillLevel: _selectedSkill,
       bio: _bioController.text,
@@ -338,6 +339,7 @@ class _EditProfileModalState extends ConsumerState<EditProfileModal> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final existingPicUrl = AppConfig.resolveMediaUrl(widget.profileData['profile_picture']);
 
     return Container(
       decoration: BoxDecoration(
@@ -363,12 +365,12 @@ class _EditProfileModalState extends ConsumerState<EditProfileModal> {
                   CircleAvatar(
                     radius: 50,
                     backgroundColor: GoAthleteColors.athleticOrange,
-                    backgroundImage: _imageFile != null 
-                        ? FileImage(_imageFile!) as ImageProvider
-                        : (widget.profileData['profile_picture'] != null && widget.profileData['profile_picture'].toString().isNotEmpty
-                            ? NetworkImage(widget.profileData['profile_picture'].toString().startsWith('http') ? widget.profileData['profile_picture'] : 'http://72.60.193.38${widget.profileData['profile_picture']}')
+                    backgroundImage: _imageBytes != null
+                        ? MemoryImage(_imageBytes!) as ImageProvider
+                        : (existingPicUrl != null
+                            ? NetworkImage(existingPicUrl)
                             : null),
-                    child: (_imageFile == null && (widget.profileData['profile_picture'] == null || widget.profileData['profile_picture'].toString().isEmpty))
+                    child: (_imageBytes == null && existingPicUrl == null)
                         ? const Icon(Icons.person, size: 50, color: Colors.white)
                         : null,
                   ),

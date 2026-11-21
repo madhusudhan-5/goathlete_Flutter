@@ -14,10 +14,16 @@ class SportTemplateSerializer(serializers.ModelSerializer):
 
 class TournamentSerializer(serializers.ModelSerializer):
     sport_name = serializers.CharField(source='sport_template.name', read_only=True)
+    min_players_per_team = serializers.IntegerField(source='sport_template.min_players_per_team', read_only=True)
+    max_players_per_team = serializers.IntegerField(source='sport_template.max_players_per_team', read_only=True)
     organizer_name = serializers.SerializerMethodField()
     default_umpire_name = serializers.SerializerMethodField()
     teams_count = serializers.SerializerMethodField()
     matches_count = serializers.SerializerMethodField()
+    total_player_capacity = serializers.SerializerMethodField()
+    joined_players_count = serializers.SerializerMethodField()
+    available_player_slots = serializers.SerializerMethodField()
+    my_joined_team = serializers.SerializerMethodField()
     entry_fee = serializers.SerializerMethodField()
     player_fee = serializers.SerializerMethodField()
     team_fee = serializers.SerializerMethodField()
@@ -43,6 +49,34 @@ class TournamentSerializer(serializers.ModelSerializer):
 
     def get_matches_count(self, obj):
         return obj.matches.count()
+
+    def get_total_player_capacity(self, obj):
+        max_per_team = obj.sport_template.max_players_per_team or 11
+        return obj.teams.count() * max_per_team
+
+    def get_joined_players_count(self, obj):
+        return TournamentPlayer.objects.filter(team__tournament=obj).count()
+
+    def get_available_player_slots(self, obj):
+        total = self.get_total_player_capacity(obj)
+        joined = self.get_joined_players_count(obj)
+        return max(0, total - joined)
+
+    def get_my_joined_team(self, obj):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            profile = getattr(request.user, 'profile', None)
+            if profile:
+                tp = TournamentPlayer.objects.filter(team__tournament=obj, player=profile).select_related('team').first()
+                if tp:
+                    return {
+                        'team_id': tp.team.id,
+                        'team_name': tp.team.name,
+                        'payment_status': tp.payment_status,
+                        'fee_paid': float(tp.fee_paid),
+                        'joined_at': tp.joined_at.isoformat() if tp.joined_at else None,
+                    }
+        return None
 
     def get_entry_fee(self, obj):
         rules = obj.tournament_rules or {}
@@ -89,6 +123,9 @@ class TeamSerializer(serializers.ModelSerializer):
     tournament = serializers.PrimaryKeyRelatedField(queryset=Tournament.objects.all(), required=False, allow_null=True)
     captain_name = serializers.SerializerMethodField()
     players = TournamentPlayerSerializer(many=True, read_only=True)
+    players_count = serializers.SerializerMethodField()
+    max_players = serializers.SerializerMethodField()
+    available_slots = serializers.SerializerMethodField()
 
     class Meta:
         model = Team
@@ -98,6 +135,17 @@ class TeamSerializer(serializers.ModelSerializer):
         if obj.captain:
             return f"{obj.captain.user.first_name} {obj.captain.user.last_name}".strip() or obj.captain.user.username
         return None
+
+    def get_players_count(self, obj):
+        return obj.players.count()
+
+    def get_max_players(self, obj):
+        if obj.tournament and obj.tournament.sport_template:
+            return obj.tournament.sport_template.max_players_per_team or 11
+        return 11
+
+    def get_available_slots(self, obj):
+        return max(0, self.get_max_players(obj) - self.get_players_count(obj))
 
 class MatchSerializer(serializers.ModelSerializer):
     team_a_name = serializers.CharField(source='team_a.name', read_only=True)

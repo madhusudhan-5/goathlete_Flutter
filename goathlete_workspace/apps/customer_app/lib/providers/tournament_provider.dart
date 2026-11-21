@@ -151,6 +151,18 @@ class TournamentNotifier extends StateNotifier<TournamentState> {
     }
   }
 
+  Future<List<dynamic>> fetchTournamentTeams(int tournamentId) async {
+    try {
+      final response = await _dio.get(
+        'tournaments/teams/',
+        queryParameters: {'tournament': tournamentId},
+      );
+      return response.data as List<dynamic>;
+    } catch (e) {
+      return [];
+    }
+  }
+
   Future<bool> startMatch(String matchId) async {
     try {
       final response = await _dio.post('tournaments/matches/$matchId/start_match/');
@@ -226,6 +238,24 @@ class TournamentNotifier extends StateNotifier<TournamentState> {
       return null;
     } catch (e) {
       state = state.copyWith(error: e.toString());
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> joinTournamentTeam(int teamId, {required bool feePaid}) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final response = await _dio.post('tournaments/teams/$teamId/join_team/', data: {
+        'fee_paid': feePaid,
+      });
+      state = state.copyWith(isLoading: false);
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      final msg = e.response?.data?['error'] ?? 'Could not join team.';
+      state = state.copyWith(isLoading: false, error: msg.toString());
+      return null;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
       return null;
     }
   }

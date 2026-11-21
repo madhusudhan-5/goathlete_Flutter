@@ -1,11 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio/dio.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../config/app_config.dart';
 import '../network/api_client.dart';
+import '../services/app_storage.dart';
 
-final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
-  return const FlutterSecureStorage();
+final secureStorageProvider = Provider<AppStorage>((ref) {
+  return const AppStorage();
 });
 
 class AuthState {
@@ -31,7 +33,7 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final Dio _dio;
-  final FlutterSecureStorage _storage;
+  final AppStorage _storage;
 
   AuthNotifier(this._dio, this._storage) : super(AuthState()) {
     checkAuthStatus();
@@ -94,9 +96,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool?> signInWithGoogle() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-        serverClientId: '740629489616-c6j07tvj7gg7a6ulfpsu8tmptf151adu.apps.googleusercontent.com',
-      );
+      final GoogleSignIn googleSignIn = kIsWeb
+          ? GoogleSignIn(
+              clientId: AppConfig.googleWebClientId,
+              scopes: const ['email', 'profile'],
+            )
+          : GoogleSignIn(
+              serverClientId: AppConfig.googleWebClientId,
+            );
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
         state = state.copyWith(isLoading: false);
@@ -105,27 +112,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
       final idToken = googleAuth.idToken;
+      final accessToken = googleAuth.accessToken;
 
-      if (idToken == null) {
+      if (idToken == null && accessToken == null) {
         state = state.copyWith(isLoading: false, error: 'Google sign in failed (no token).');
         return null;
       }
 
-      final response = await _dio.post('users/google-login/', data: {
-        'id_token': idToken,
-      });
+      final payload = <String, dynamic>{};
+      if (idToken != null) payload['id_token'] = idToken;
+      if (accessToken != null) payload['access_token'] = accessToken;
 
-      final accessToken = response.data['access'];
+      final response = await _dio.post('users/google-login/', data: payload);
+
+      final jwtAccessToken = response.data['access'];
       final refreshToken = response.data['refresh'];
       final bool isProfileComplete = response.data['is_profile_complete'] ?? false;
       
-      await _storage.write(key: 'access_token', value: accessToken);
+      await _storage.write(key: 'access_token', value: jwtAccessToken);
       await _storage.write(key: 'refresh_token', value: refreshToken);
       
       state = state.copyWith(isAuthenticated: true, isLoading: false);
       return isProfileComplete;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Google Sign In failed.');
+      state = state.copyWith(isLoading: false, error: 'Google Sign In failed: $e');
       return null;
     }
   }
@@ -155,7 +165,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> updateProfileWithImage({
     required String firstName,
     required String dob,
-    String? imagePath,
+    Uint8List? imageBytes,
+    String? imageName,
     String? primarySport,
     String? skillLevel,
     String? bio,
@@ -170,10 +181,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (skillLevel != null) formData.fields.add(MapEntry('skill_level', skillLevel));
       if (bio != null) formData.fields.add(MapEntry('bio', bio));
 
-      if (imagePath != null) {
+      if (imageBytes != null && imageBytes.isNotEmpty) {
         formData.files.add(MapEntry(
           'profile_picture',
-          await MultipartFile.fromFile(imagePath, filename: 'profile_pic.jpg'),
+          MultipartFile.fromBytes(
+            imageBytes,
+            filename: (imageName != null && imageName.isNotEmpty)
+                ? imageName
+                : 'profile_pic.jpg',
+          ),
         ));
       }
 

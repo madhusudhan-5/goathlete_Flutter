@@ -45,6 +45,7 @@ class _CreateTournamentWizardState extends ConsumerState<CreateTournamentWizard>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(venueProvider.notifier).fetchVenues();
       final profile = ref.read(profileProvider).value;
       if (profile != null) {
         setState(() {

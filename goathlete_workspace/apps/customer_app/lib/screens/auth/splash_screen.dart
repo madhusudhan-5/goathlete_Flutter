@@ -39,6 +39,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     );
 
     _controller.forward().then((_) {
+      if (!mounted) return;
       // Transition to Login Screen
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(

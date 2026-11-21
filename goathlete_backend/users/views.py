@@ -129,27 +129,57 @@ class GoogleLoginView(APIView):
     authentication_classes = ()
     def post(self, request):
         id_token = request.data.get('id_token')
-        if not id_token:
-            return Response({'error': 'Google ID token is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            # Verify the token with Google
-            url = f"https://oauth2.googleapis.com/tokeninfo?id_token={id_token}"
-            req = urllib.request.Request(url)
-            with urllib.request.urlopen(req) as response:
-                google_data = json.loads(response.read().decode())
+        access_token = request.data.get('access_token')
+        if not id_token and not access_token:
+            return Response(
+                {'error': 'Google ID token or access token is required'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
+        try:
             valid_clients = {
                 c for c in [
                     getattr(settings, 'GOOGLE_OAUTH_CLIENT_ID', ''),
                     getattr(settings, 'GOOGLE_ANDROID_CLIENT_ID', ''),
                 ] if c and c != 'placeholder'
             }
-            if valid_clients:
-                aud = google_data.get('aud')
-                azp = google_data.get('azp')
-                if aud not in valid_clients and azp not in valid_clients:
-                    return Response({'error': 'Token audience mismatch.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if id_token:
+                # Verify ID token with Google (Android/iOS and GIS One Tap)
+                url = f"https://oauth2.googleapis.com/tokeninfo?id_token={id_token}"
+                req = urllib.request.Request(url)
+                with urllib.request.urlopen(req) as response:
+                    google_data = json.loads(response.read().decode())
+
+                if valid_clients:
+                    aud = google_data.get('aud')
+                    azp = google_data.get('azp')
+                    if aud not in valid_clients and azp not in valid_clients:
+                        return Response(
+                            {'error': 'Token audience mismatch.'},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+            else:
+                # Verify OAuth2 access token with Google (Flutter Web GIS popup)
+                tokeninfo_url = f"https://oauth2.googleapis.com/tokeninfo?access_token={access_token}"
+                with urllib.request.urlopen(urllib.request.Request(tokeninfo_url)) as response:
+                    token_info = json.loads(response.read().decode())
+
+                if valid_clients:
+                    aud = token_info.get('aud')
+                    azp = token_info.get('azp')
+                    if aud not in valid_clients and azp not in valid_clients:
+                        return Response(
+                            {'error': 'Token audience mismatch.'},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                userinfo_req = urllib.request.Request(
+                    "https://www.googleapis.com/oauth2/v3/userinfo",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                )
+                with urllib.request.urlopen(userinfo_req) as response:
+                    google_data = json.loads(response.read().decode())
                 
             email = google_data.get('email')
             if not email:

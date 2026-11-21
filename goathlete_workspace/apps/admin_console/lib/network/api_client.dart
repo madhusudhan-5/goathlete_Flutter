@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:admin_console/providers/admin_provider.dart';
 
-final String _baseUrl = 'http://72.60.193.38/api/';
+final String _baseUrl = 'http://127.0.0.1:8000/api/';
 
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(

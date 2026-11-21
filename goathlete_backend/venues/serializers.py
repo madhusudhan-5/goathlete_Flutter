@@ -22,6 +22,11 @@ class VenueSerializer(serializers.ModelSerializer):
     sports = VenueSportSerializer(many=True, read_only=True)
     amenities = AmenitySerializer(many=True, read_only=True)
     owner_details = serializers.SerializerMethodField(read_only=True)
+    distance = serializers.SerializerMethodField(read_only=True)
+    latitude = serializers.FloatField(required=False, allow_null=True)
+    longitude = serializers.FloatField(required=False, allow_null=True)
+    rating = serializers.FloatField(required=False, default=0.0)
+    price_per_hour = serializers.FloatField(required=False, default=0.0)
     
     class Meta:
         model = Venue
@@ -31,6 +36,35 @@ class VenueSerializer(serializers.ModelSerializer):
             'image_url', 'price_per_hour', 'sports', 'amenities', 
             'owner', 'owner_details'
         ]
+
+    def get_distance(self, obj):
+        if obj.latitude is not None and obj.longitude is not None:
+            request = self.context.get('request')
+            lat = None
+            lng = None
+            if self.context.get('search_lat') is not None and self.context.get('search_lng') is not None:
+                lat = self.context.get('search_lat')
+                lng = self.context.get('search_lng')
+            elif request:
+                lat = request.query_params.get('lat')
+                lng = request.query_params.get('lng')
+            if lat is not None and lng is not None:
+                try:
+                    import math
+                    lat1, lon1 = float(lat), float(lng)
+                    lat2, lon2 = float(obj.latitude), float(obj.longitude)
+                    r = 6371.0
+                    dlat = math.radians(lat2 - lat1)
+                    dlon = math.radians(lon2 - lon1)
+                    a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
+                    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+                    km = r * c
+                    if km < 1.0:
+                        return f"{int(round(km * 1000))} m away"
+                    return f"{km:.1f} km away"
+                except Exception:
+                    pass
+        return obj.distance or ""
 
     def get_owner_details(self, obj):
         if obj.owner:

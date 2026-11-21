@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 
 final sportsNewsProvider = FutureProvider.family<List<dynamic>, String>((ref, query) async {
   try {
-    final response = await http.get(Uri.parse('http://72.60.193.38/api/dashboard/sports-news/?q=$query'));
+    final uri = Uri.parse('${AppConfig.apiBaseUrl}dashboard/sports-news/')
+        .replace(queryParameters: {'q': query});
+    final response = await http.get(uri);
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       return data['news'] as List<dynamic>;

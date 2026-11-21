@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-final String _baseUrl = 'http://72.60.193.38/api/';
+final String _baseUrl = 'http://127.0.0.1:8000/api/';
 
 
 

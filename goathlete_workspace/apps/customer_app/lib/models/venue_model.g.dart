@@ -8,20 +8,20 @@ part of 'venue_model.dart';
 
 _$VenueImpl _$$VenueImplFromJson(Map<String, dynamic> json) => _$VenueImpl(
   id: (json['id'] as num).toInt(),
-  name: json['name'] as String,
-  description: json['description'] as String,
-  location: json['location'] as String,
-  distance: json['distance'] as String,
-  latitude: (json['latitude'] as num?)?.toDouble(),
-  longitude: (json['longitude'] as num?)?.toDouble(),
-  rating: json['rating'] as num,
-  reviewsCount: (json['reviews_count'] as num).toInt(),
-  imageUrl: json['image_url'] as String,
-  pricePerHour: json['price_per_hour'] as num,
-  sports: (json['sports'] as List<dynamic>)
+  name: (json['name'] ?? '') as String,
+  description: (json['description'] ?? '') as String,
+  location: (json['location'] ?? '') as String,
+  distance: (json['distance'] ?? '') as String,
+  latitude: json['latitude'] == null ? null : double.tryParse(json['latitude'].toString()),
+  longitude: json['longitude'] == null ? null : double.tryParse(json['longitude'].toString()),
+  rating: num.tryParse(json['rating']?.toString() ?? '0') ?? 0,
+  reviewsCount: (json['reviews_count'] as num?)?.toInt() ?? 0,
+  imageUrl: (json['image_url'] ?? '') as String,
+  pricePerHour: num.tryParse(json['price_per_hour']?.toString() ?? '0') ?? 0,
+  sports: (json['sports'] as List<dynamic>? ?? [])
       .map((e) => VenueSport.fromJson(e as Map<String, dynamic>))
       .toList(),
-  amenities: (json['amenities'] as List<dynamic>)
+  amenities: (json['amenities'] as List<dynamic>? ?? [])
       .map((e) => Amenity.fromJson(e as Map<String, dynamic>))
       .toList(),
 );

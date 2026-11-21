@@ -1,12 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:io';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../config/app_config.dart';
+import '../services/app_storage.dart';
 
-// Update this domain/IP to match your actual production backend URL
-final String _baseUrl = 'http://72.60.193.38/api/';
-
-
+final String _baseUrl = AppConfig.apiBaseUrl;
 
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
@@ -23,7 +20,7 @@ final dioProvider = Provider<Dio>((ref) {
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
-        const storage = FlutterSecureStorage();
+        const storage = AppStorage();
         final token = await storage.read(key: 'access_token');
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
@@ -32,7 +29,7 @@ final dioProvider = Provider<Dio>((ref) {
       },
       onError: (DioException e, handler) async {
         if (e.response?.statusCode == 401) {
-          const storage = FlutterSecureStorage();
+          const storage = AppStorage();
           await storage.delete(key: 'access_token');
           await storage.delete(key: 'refresh_token');
         }

@@ -49,6 +49,8 @@ class TournamentPlayer(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='players')
     player = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='tournament_participations')
     joined_at = models.DateTimeField(auto_now_add=True)
+    fee_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    payment_status = models.CharField(max_length=20, choices=[('FREE', 'FREE'), ('PAID', 'PAID'), ('PENDING', 'PENDING')], default='FREE')
 
     class Meta:
         unique_together = ('team', 'player')
