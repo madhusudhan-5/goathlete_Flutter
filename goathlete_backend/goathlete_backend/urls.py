@@ -18,9 +18,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from users.beta_views import android_beta_portal, android_beta_qr_poster
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('android-beta/', android_beta_portal, name='android_beta_portal'),
+    path('android-beta/qr/', android_beta_qr_poster, name='android_beta_qr_poster'),
     path('api/venues/', include('venues.urls')),
     path('api/users/', include('users.urls')),
     path('api/bookings/', include('bookings.urls')),

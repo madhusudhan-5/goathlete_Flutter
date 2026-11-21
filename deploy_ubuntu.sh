@@ -70,6 +70,9 @@ GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID:-your_google_web_client_id}
 GOOGLE_ANDROID_CLIENT_ID=${GOOGLE_ANDROID_CLIENT_ID:-your_google_android_client_id}
 GOOGLE_OAUTH_SECRET=${GOOGLE_OAUTH_SECRET:-your_google_client_secret}
 MAPS_API_KEY=${MAPS_API_KEY:-your_maps_api_key}
+ANDROID_PACKAGE_NAME=${ANDROID_PACKAGE_NAME:-com.goathlete.com}
+ANDROID_TESTER_GOOGLE_GROUP_URL=${ANDROID_TESTER_GOOGLE_GROUP_URL:-https://groups.google.com/g/goathlete-testers}
+IOS_WEB_APP_URL=${IOS_WEB_APP_URL:-https://app.goathlete.com}
 EOF
     echo "Created .env at $BACKEND_DIR/.env"
 else

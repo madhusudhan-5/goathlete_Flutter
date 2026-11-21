@@ -148,3 +148,75 @@ class FreshRegistrationAndPlatformTests(TestCase):
         self.assertEqual(Tournament.objects.count(), 1)
         self.assertEqual(Team.objects.count(), 4)
         self.assertGreater(Match.objects.count(), 0)
+
+
+class BetaTesterPortalTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_android_beta_portal_and_qr_pages_render(self):
+        portal_res = self.client.get('/android-beta/?ref=turf_desk')
+        self.assertEqual(portal_res.status_code, 200)
+        self.assertContains(portal_res, 'Install GoAthlete on Android')
+        self.assertContains(portal_res, 'play.google.com/apps/testing/com.goathlete.com')
+
+        qr_res = self.client.get('/android-beta/qr/?ref=turf_desk')
+        self.assertEqual(qr_res.status_code, 200)
+        self.assertContains(qr_res, 'Scan to Install GoAthlete')
+        self.assertContains(qr_res, 'ref=turf_desk')
+
+    def test_beta_tester_register_track_and_admin_csv_export(self):
+        from users.models import BetaTester
+
+        # Reject invalid email
+        bad_res = self.client.post('/api/users/beta-testers/register/', {'email': 'not-an-email'}, format='json')
+        self.assertEqual(bad_res.status_code, 400)
+
+        # Register valid email
+        reg_res = self.client.post('/api/users/beta-testers/register/', {
+            'email': 'Player.One@Gmail.com',
+            'full_name': 'Player One',
+            'phone_number': '9876543210',
+            'source': 'banner_1',
+        }, format='json')
+        self.assertEqual(reg_res.status_code, 201)
+        self.assertEqual(reg_res.data['email'], 'player.one@gmail.com')
+        self.assertTrue(reg_res.data['is_new'])
+        self.assertIn('google_group_url', reg_res.data)
+        self.assertIn('play_testing_url', reg_res.data)
+
+        # Re-registering same email is idempotent (200)
+        dup_res = self.client.post('/api/users/beta-testers/register/', {
+            'email': 'player.one@gmail.com',
+        }, format='json')
+        self.assertEqual(dup_res.status_code, 200)
+        self.assertFalse(dup_res.data['is_new'])
+        self.assertEqual(BetaTester.objects.count(), 1)
+
+        # Track group_joined -> play_opened
+        g_res = self.client.post('/api/users/beta-testers/track/', {
+            'email': 'player.one@gmail.com',
+            'event': 'group_joined',
+        }, format='json')
+        self.assertEqual(g_res.status_code, 200)
+        self.assertEqual(g_res.data['status'], 'GROUP_JOINED')
+
+        p_res = self.client.post('/api/users/beta-testers/track/', {
+            'email': 'player.one@gmail.com',
+            'event': 'play_opened',
+        }, format='json')
+        self.assertEqual(p_res.status_code, 200)
+        self.assertEqual(p_res.data['status'], 'PLAY_OPENED')
+
+        # Unauthenticated CSV export must be rejected
+        unauth_csv = self.client.get('/api/users/beta-testers/export-csv/')
+        self.assertIn(unauth_csv.status_code, (401, 403))
+
+        # Admin CSV export works
+        admin_user = User.objects.create_superuser(username='beta_admin', password='password123', email='admin@goathlete.com')
+        from rest_framework_simplejwt.tokens import RefreshToken
+        token = str(RefreshToken.for_user(admin_user).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        csv_res = self.client.get('/api/users/beta-testers/export-csv/')
+        self.assertEqual(csv_res.status_code, 200)
+        self.assertIn('player.one@gmail.com', csv_res.content.decode())

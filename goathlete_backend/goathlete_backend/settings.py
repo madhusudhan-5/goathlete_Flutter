@@ -42,6 +42,23 @@ GOOGLE_OAUTH_CLIENT_ID = os.environ.get('GOOGLE_OAUTH_CLIENT_ID', '')
 GOOGLE_ANDROID_CLIENT_ID = os.environ.get('GOOGLE_ANDROID_CLIENT_ID', '')
 GOOGLE_OAUTH_SECRET = os.environ.get('GOOGLE_OAUTH_SECRET', '')
 
+# Android Closed Testing (Beta QR Onboarding Portal) Configuration
+ANDROID_PACKAGE_NAME = os.environ.get('ANDROID_PACKAGE_NAME', 'com.goathlete.com')
+ANDROID_TESTER_GOOGLE_GROUP_URL = os.environ.get(
+    'ANDROID_TESTER_GOOGLE_GROUP_URL',
+    'https://groups.google.com/g/goathlete-testers',
+)
+ANDROID_PLAY_TESTING_URL = os.environ.get(
+    'ANDROID_PLAY_TESTING_URL',
+    f'https://play.google.com/apps/testing/{ANDROID_PACKAGE_NAME}',
+)
+ANDROID_PLAY_STORE_URL = os.environ.get(
+    'ANDROID_PLAY_STORE_URL',
+    f'https://play.google.com/store/apps/details?id={ANDROID_PACKAGE_NAME}',
+)
+ANDROID_BETA_PUBLIC_URL = os.environ.get('ANDROID_BETA_PUBLIC_URL', '')
+IOS_WEB_APP_URL = os.environ.get('IOS_WEB_APP_URL', 'https://app.goathlete.com')
+
 
 
 # Application definition

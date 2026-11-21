@@ -1,0 +1,578 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>GoAthlete Android Early Access</title>
+  <meta name="theme-color" content="#0A1F35">
+  <style>
+    :root {
+      --bg-dark: #030929;
+      --navy: #0A1F35;
+      --card: rgba(255, 255, 255, 0.07);
+      --border: rgba(255, 255, 255, 0.14);
+      --orange: #DA6F2B;
+      --orange-hover: #E87F3B;
+      --green: #22C55E;
+      --text: #FFFFFF;
+      --muted: rgba(255, 255, 255, 0.74);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      color: var(--text);
+      background: linear-gradient(155deg, var(--bg-dark) 0%, var(--navy) 55%, #0E2A47 100%);
+      display: flex;
+      justify-content: center;
+      padding: 20px 16px 40px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 460px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 8px;
+      margin-bottom: 18px;
+    }
+
+    .brand img.icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    .brand img.logo {
+      height: 30px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(218, 111, 43, 0.18);
+      border: 1px solid rgba(218, 111, 43, 0.5);
+      color: #FFA76B;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 25px;
+      line-height: 1.25;
+      margin: 14px 0 8px;
+    }
+
+    .header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .ios-banner {
+      display: none;
+      background: rgba(59, 130, 246, 0.16);
+      border: 1px solid rgba(96, 165, 250, 0.45);
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+      font-size: 13.5px;
+      line-height: 1.45;
+    }
+
+    .ios-banner a {
+      display: inline-block;
+      margin-top: 10px;
+      background: #3B82F6;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      padding: 9px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px 20px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 20px 44px rgba(0, 0, 0, 0.34);
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .field input {
+      width: 100%;
+      padding: 13px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(3, 9, 41, 0.65);
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .field input:focus {
+      border-color: var(--orange);
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 5px;
+    }
+
+    .btn {
+      width: 100%;
+      border: none;
+      border-radius: 14px;
+      padding: 15px 18px;
+      font-size: 15.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: transform 0.12s ease, background 0.2s ease, opacity 0.2s;
+    }
+
+    .btn:active { transform: scale(0.985); }
+
+    .btn-primary {
+      background: var(--orange);
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: var(--orange-hover); }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-success {
+      background: var(--green);
+      color: #03210F;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.11);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .error-box {
+      display: none;
+      background: rgba(239, 68, 68, 0.18);
+      border: 1px solid rgba(248, 113, 113, 0.5);
+      color: #FECACA;
+      border-radius: 12px;
+      padding: 11px 13px;
+      font-size: 13.5px;
+      margin-bottom: 14px;
+    }
+
+    .steps-panel {
+      display: none;
+    }
+
+    .saved-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(34, 197, 94, 0.14);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+      font-size: 13.5px;
+    }
+
+    .saved-pill strong {
+      color: #86EFAC;
+      word-break: break-all;
+    }
+
+    .step-card {
+      background: rgba(3, 9, 41, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .step-card.done {
+      border-color: rgba(34, 197, 94, 0.55);
+    }
+
+    .step-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: var(--orange);
+      color: #fff;
+      font-weight: 800;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-card.done .step-num {
+      background: var(--green);
+      color: #03210F;
+    }
+
+    .step-title {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .step-desc {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .note {
+      margin-top: 14px;
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.5;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+
+    .change-email {
+      margin-top: 14px;
+      text-align: center;
+    }
+
+    .change-email button {
+      background: none;
+      border: none;
+      color: #FFA76B;
+      font-size: 13px;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="brand">
+      <img class="icon" src="{% static 'users/appIcon.png' %}" alt="GoAthlete">
+      <img class="logo" src="{% static 'users/goAthleteLogo.png' %}" alt="GoAthlete">
+    </div>
+
+    <div class="header">
+      <span class="badge">Android Early Access</span>
+      <h1>Install GoAthlete on Android</h1>
+      <p>Enter your Google Play email to unlock instant closed-testing access and install GoAthlete right away.</p>
+    </div>
+
+    <div id="iosBanner" class="ios-banner">
+      <strong>Using an iPhone or iPad?</strong><br>
+      The iOS App Store release is coming soon. You can use the GoAthlete Mobile Web App right now in Safari!
+      <div>
+        <a href="{{ ios_web_app_url }}" target="_blank" rel="noopener">Open GoAthlete Web App →</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="errorBox" class="error-box"></div>
+
+      <!-- STEP 0: EMAIL CAPTURE FORM -->
+      <form id="registerForm">
+        <div class="field">
+          <label for="email">Google Play Store Email *</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autocomplete="email"
+            placeholder="yourname@gmail.com"
+          >
+          <div class="hint">Use the exact Gmail account signed into Google Play Store on this phone.</div>
+        </div>
+
+        <div class="field">
+          <label for="fullName">Your Name (optional)</label>
+          <input
+            id="fullName"
+            name="full_name"
+            type="text"
+            autocomplete="name"
+            placeholder="e.g. Rahul Sharma"
+          >
+        </div>
+
+        <div class="field">
+          <label for="phone">Phone Number (optional)</label>
+          <input
+            id="phone"
+            name="phone_number"
+            type="tel"
+            autocomplete="tel"
+            placeholder="e.g. 9876543210"
+          >
+        </div>
+
+        <button id="submitBtn" class="btn btn-primary" type="submit">
+          Unlock Android App Access →
+        </button>
+      </form>
+
+      <!-- STEP 1 & 2: INSTANT PLAY STORE ACCESS -->
+      <div id="stepsPanel" class="steps-panel">
+        <div class="saved-pill">
+          <span>✅</span>
+          <div>
+            Added to GoAthlete tester list:<br>
+            <strong id="registeredEmail"></strong>
+          </div>
+        </div>
+
+        <div id="step1Card" class="step-card">
+          <div class="step-top">
+            <span class="step-num" id="step1Badge">1</span>
+            <span class="step-title">Join GoAthlete Tester Group</span>
+          </div>
+          <p class="step-desc">
+            Tap below and click <strong>"Join group"</strong> using the same Gmail account. This instantly enables Google Play access for your phone.
+          </p>
+          <a
+            id="groupBtn"
+            class="btn btn-primary"
+            href="{{ google_group_url }}"
+            target="_blank"
+            rel="noopener"
+          >
+            Step 1: Join Tester Group ↗
+          </a>
+        </div>
+
+        <div id="step2Card" class="step-card">
+          <div class="step-top">
+            <span class="step-num" id="step2Badge">2</span>
+            <span class="step-title">Install GoAthlete on Google Play</span>
+          </div>
+          <p class="step-desc">
+            Once you joined the group, come back here and tap below → press <strong>"Become a tester"</strong> → <strong>"Download it on Google Play"</strong>.
+          </p>
+          <a
+            id="playTestingBtn"
+            class="btn btn-success"
+            href="{{ play_testing_url }}"
+            target="_blank"
+            rel="noopener"
+          >
+            Step 2: Accept & Install on Play Store ↗
+          </a>
+          <div style="height: 10px;"></div>
+          <a
+            id="playStoreDirectBtn"
+            class="btn btn-secondary"
+            href="{{ play_store_url }}"
+            target="_blank"
+            rel="noopener"
+          >
+            Already opted in? Open Play Store directly ↗
+          </a>
+        </div>
+
+        <div class="note">
+          <strong>Tip:</strong> If Google Play says <em>"App not available"</em>, make sure Chrome and Google Play Store are signed into the <strong>same Gmail account</strong> you used to join the Tester Group, then refresh Step 2.
+        </div>
+
+        <div class="change-email">
+          <button id="changeEmailBtn" type="button">Use a different email address</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const refSource = "{{ ref_source|escapejs }}";
+      const registerForm = document.getElementById("registerForm");
+      const stepsPanel = document.getElementById("stepsPanel");
+      const errorBox = document.getElementById("errorBox");
+      const submitBtn = document.getElementById("submitBtn");
+      const registeredEmailEl = document.getElementById("registeredEmail");
+      const groupBtn = document.getElementById("groupBtn");
+      const playTestingBtn = document.getElementById("playTestingBtn");
+      const playStoreDirectBtn = document.getElementById("playStoreDirectBtn");
+      const step1Card = document.getElementById("step1Card");
+      const step1Badge = document.getElementById("step1Badge");
+      const step2Card = document.getElementById("step2Card");
+      const step2Badge = document.getElementById("step2Badge");
+      const changeEmailBtn = document.getElementById("changeEmailBtn");
+
+      // Show friendly iOS Mobile Web App banner on iPhone / iPad
+      const ua = navigator.userAgent || "";
+      const isIOS = /iPad|iPhone|iPod/i.test(ua) || (ua.includes("Macintosh") && navigator.maxTouchPoints > 1);
+      if (isIOS) {
+        document.getElementById("iosBanner").style.display = "block";
+      }
+
+      let activeEmail = "";
+
+      function showError(msg) {
+        errorBox.textContent = msg;
+        errorBox.style.display = "block";
+      }
+
+      function clearError() {
+        errorBox.style.display = "none";
+        errorBox.textContent = "";
+      }
+
+      function showSteps(email, groupUrl, playTestingUrl, playStoreUrl) {
+        activeEmail = email;
+        registeredEmailEl.textContent = email;
+        if (groupUrl) groupBtn.href = groupUrl;
+        if (playTestingUrl) playTestingBtn.href = playTestingUrl;
+        if (playStoreUrl) playStoreDirectBtn.href = playStoreUrl;
+        registerForm.style.display = "none";
+        stepsPanel.style.display = "block";
+        try {
+          localStorage.setItem("goathlete_beta_email", email);
+        } catch (_) {}
+      }
+
+      // Restore email if customer returns from Google Groups tab
+      try {
+        const saved = localStorage.getItem("goathlete_beta_email");
+        if (saved) {
+          showSteps(saved);
+        }
+      } catch (_) {}
+
+      registerForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        clearError();
+
+        const email = document.getElementById("email").value.trim();
+        const full_name = document.getElementById("fullName").value.trim();
+        const phone_number = document.getElementById("phone").value.trim();
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Adding you to tester list...";
+
+        try {
+          const resp = await fetch("/api/users/beta-testers/register/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: email,
+              full_name: full_name,
+              phone_number: phone_number,
+              source: refSource,
+            }),
+          });
+          const data = await resp.json();
+          if (!resp.ok) {
+            showError(data.error || "Could not register email. Please try again.");
+            return;
+          }
+          showSteps(
+            data.email,
+            data.google_group_url,
+            data.play_testing_url,
+            data.play_store_url
+          );
+        } catch (err) {
+          showError("Network error. Please check your internet connection and try again.");
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Unlock Android App Access →";
+        }
+      });
+
+      function trackEvent(eventName) {
+        if (!activeEmail) return;
+        fetch("/api/users/beta-testers/track/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          keepalive: true,
+          body: JSON.stringify({ email: activeEmail, event: eventName }),
+        }).catch(function () {});
+      }
+
+      groupBtn.addEventListener("click", function () {
+        trackEvent("group_joined");
+        step1Card.classList.add("done");
+        step1Badge.textContent = "✓";
+      });
+
+      playTestingBtn.addEventListener("click", function () {
+        trackEvent("play_opened");
+        step2Card.classList.add("done");
+        step2Badge.textContent = "✓";
+      });
+
+      playStoreDirectBtn.addEventListener("click", function () {
+        trackEvent("play_opened");
+        step2Card.classList.add("done");
+        step2Badge.textContent = "✓";
+      });
+
+      changeEmailBtn.addEventListener("click", function () {
+        clearError();
+        try { localStorage.removeItem("goathlete_beta_email"); } catch (_) {}
+        document.getElementById("email").value = activeEmail;
+        stepsPanel.style.display = "none";
+        registerForm.style.display = "block";
+      });
+    })();
+  </script>
+</body>
+</html>

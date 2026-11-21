@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.routers import DefaultRouter
 from .views import RegisterView, ProfileView, SendOTPView, VerifyOTPView, ExecutiveViewSet, GoogleLoginView, ProfileUpdateView, UserLookupView, ChangePasswordView
+from .beta_views import BetaTesterRegisterView, BetaTesterTrackView, BetaTesterExportCSVView
 
 router = DefaultRouter()
 router.register(r'executives', ExecutiveViewSet, basename='executive')
@@ -18,5 +19,8 @@ urlpatterns = [
     path('verify-otp/', VerifyOTPView.as_view(), name='verify_otp'),
     path('google-login/', GoogleLoginView.as_view(), name='google_login'),
     path('change-password/', ChangePasswordView.as_view(), name='change_password'),
+    path('beta-testers/register/', BetaTesterRegisterView.as_view(), name='beta_tester_register'),
+    path('beta-testers/track/', BetaTesterTrackView.as_view(), name='beta_tester_track'),
+    path('beta-testers/export-csv/', BetaTesterExportCSVView.as_view(), name='beta_tester_export_csv'),
 ]
 

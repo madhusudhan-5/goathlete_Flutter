@@ -44,6 +44,37 @@ class OTP(models.Model):
     def __str__(self):
         return f"{self.phone_number} - {self.otp_code}"
 
+
+class BetaTester(models.Model):
+    STATUS_CHOICES = (
+        ('REGISTERED', 'Email Registered'),
+        ('GROUP_JOINED', 'Opened Tester Group'),
+        ('PLAY_OPENED', 'Opened Play Store Install'),
+        ('ADDED_IN_PLAY', 'Added in Play Console'),
+    )
+
+    email = models.EmailField(unique=True)
+    full_name = models.CharField(max_length=120, blank=True, default='')
+    phone_number = models.CharField(max_length=20, blank=True, default='')
+    source = models.CharField(max_length=80, blank=True, default='qr_portal')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='REGISTERED')
+    group_joined_at = models.DateTimeField(null=True, blank=True)
+    play_opened_at = models.DateTimeField(null=True, blank=True)
+    user_agent = models.CharField(max_length=300, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if self.email:
+            self.email = self.email.strip().lower()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.email} ({self.get_status_display()})"
+
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
