@@ -77,8 +77,8 @@ class SendOTPView(APIView):
             'sms_sent': sms_sent,
             'sms_error': sms_error,
         }
-        # Show fallback OTP directly under the OTP field whenever SMS isn't sent (or in DEBUG)
-        if not sms_sent or settings.DEBUG:
+        # Show OTP under the input field while SHOW_DEV_OTP is enabled (or when SMS fails / DEBUG)
+        if getattr(settings, 'SHOW_DEV_OTP', True) or not sms_sent or settings.DEBUG:
             payload['dev_otp'] = otp_code
 
         return Response(payload, status=status.HTTP_200_OK)
