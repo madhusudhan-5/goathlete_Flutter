@@ -3,6 +3,7 @@ import 'package:core_ui/core_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/booking_provider.dart';
+import '../../services/razorpay_checkout.dart';
 import 'components/mock_payment_gateway.dart';
 
 class BookingCheckoutScreen extends ConsumerStatefulWidget {
@@ -134,10 +135,43 @@ class _BookingCheckoutScreenState extends ConsumerState<BookingCheckoutScreen> {
                   
                   setState(() => _isLoading = false);
 
-                  if (response != null && mounted) {
-                    _showPaymentGateway(context, total, response['payment_id'], response['clientSecret']);
-                  } else if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to initiate booking.')));
+                  if (!mounted) return;
+                  if (response == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to initiate booking.')),
+                    );
+                    return;
+                  }
+                  if (response['error'] != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(response['error'].toString())),
+                    );
+                    return;
+                  }
+
+                  final provider = (response['provider'] ?? 'MOCK').toString().toUpperCase();
+                  final paymentId = (response['payment_id'] as num).toInt();
+
+                  if (provider == 'RAZORPAY') {
+                    await _launchRazorpayPayment(
+                      context,
+                      paymentId: paymentId,
+                      venueName: (response['venue_name'] ?? venueName).toString(),
+                      keyId: response['key_id'].toString(),
+                      orderId: response['order_id'].toString(),
+                      amountPaise: (response['amount_paise'] as num).toInt(),
+                      currency: (response['currency'] ?? 'INR').toString(),
+                      prefill: response['prefill'] is Map
+                          ? Map<String, dynamic>.from(response['prefill'] as Map)
+                          : const {},
+                    );
+                  } else {
+                    _showMockPaymentGateway(
+                      context,
+                      total,
+                      paymentId,
+                      (response['clientSecret'] ?? '').toString(),
+                    );
                   }
                 },
           style: ElevatedButton.styleFrom(
@@ -162,7 +196,65 @@ class _BookingCheckoutScreenState extends ConsumerState<BookingCheckoutScreen> {
     );
   }
 
-  void _showPaymentGateway(BuildContext context, double total, int paymentId, String clientSecret) {
+  Future<void> _launchRazorpayPayment(
+    BuildContext context, {
+    required int paymentId,
+    required String venueName,
+    required String keyId,
+    required String orderId,
+    required int amountPaise,
+    required String currency,
+    required Map<String, dynamic> prefill,
+  }) async {
+    try {
+      final result = await openRazorpayCheckout(
+        RazorpayCheckoutRequest(
+          keyId: keyId,
+          orderId: orderId,
+          amountPaise: amountPaise,
+          currency: currency,
+          name: 'GoAthlete',
+          description: 'Booking: $venueName',
+          prefillName: (prefill['name'] ?? '').toString(),
+          prefillEmail: (prefill['email'] ?? '').toString(),
+          prefillContact: (prefill['contact'] ?? '').toString(),
+        ),
+      );
+
+      if (!mounted) return;
+      setState(() => _isLoading = true);
+      final success = await ref.read(bookingProvider.notifier).confirmPayment(
+        paymentId,
+        razorpayOrderId: result.orderId,
+        razorpayPaymentId: result.paymentId,
+        razorpaySignature: result.signature,
+      );
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (success) {
+        _showSuccessDialog(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Payment captured, but verification failed. Please contact support if amount was deducted.'),
+          ),
+        );
+      }
+    } on RazorpayCheckoutException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment error: $e')),
+      );
+    }
+  }
+
+  void _showMockPaymentGateway(BuildContext context, double total, int paymentId, String clientSecret) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -173,7 +265,10 @@ class _BookingCheckoutScreenState extends ConsumerState<BookingCheckoutScreen> {
         onPaymentSuccess: (transactionId) async {
           Navigator.pop(ctx);
           setState(() => _isLoading = true);
-          final success = await ref.read(bookingProvider.notifier).confirmPayment(paymentId, transactionId);
+          final success = await ref.read(bookingProvider.notifier).confirmPayment(
+            paymentId,
+            transactionId: transactionId,
+          );
           setState(() => _isLoading = false);
           
           if (success && mounted) {

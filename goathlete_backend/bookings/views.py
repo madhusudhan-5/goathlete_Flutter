@@ -89,8 +89,20 @@ class VendorBookingViewSet(viewsets.ModelViewSet):
         
         serializer.save(user=self.request.user, total_price=total_price, status='confirmed')
 
-from venues.models import Venue
+from decimal import Decimal
+import json
 import uuid
+
+from django.conf import settings
+from venues.models import Venue
+from .razorpay_service import (
+    RazorpayError,
+    create_razorpay_order,
+    is_razorpay_configured,
+    verify_payment_signature,
+    verify_webhook_signature,
+)
+
 
 class PaymentIntentView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -107,12 +119,78 @@ class PaymentIntentView(APIView):
             start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
             end_time = datetime.strptime(end_time_str, '%H:%M:%S').time()
 
-            # Calculate duration in hours
             duration_delta = datetime.combine(booking_date, end_time) - datetime.combine(booking_date, start_time)
-            duration_hours = duration_delta.total_seconds() / 3600.0
-            total_price = venue.price_per_hour * type(venue.price_per_hour)(duration_hours)
+            duration_hours = Decimal(str(duration_delta.total_seconds() / 3600.0))
+            if duration_hours <= 0:
+                return Response({'error': 'End time must be after start time.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Create pending booking
+            base_price = (venue.price_per_hour * duration_hours).quantize(Decimal('0.01'))
+            platform_fee = Decimal('20.00')
+            gst = (base_price * Decimal('0.18')).quantize(Decimal('0.01'))
+            total_price = (base_price + platform_fee + gst).quantize(Decimal('0.01'))
+            amount_paise = int((total_price * Decimal('100')).quantize(Decimal('1')))
+
+            profile = getattr(request.user, 'profile', None)
+            prefill = {
+                'name': request.user.get_full_name() or request.user.first_name or request.user.username,
+                'email': request.user.email or '',
+                'contact': getattr(profile, 'phone_number', '') or '',
+            }
+
+            if is_razorpay_configured():
+                booking = Booking.objects.create(
+                    user=request.user,
+                    venue=venue,
+                    date=booking_date,
+                    start_time=start_time,
+                    end_time=end_time,
+                    total_price=total_price,
+                    status='pending',
+                )
+                try:
+                    order = create_razorpay_order(
+                        amount_paise=amount_paise,
+                        receipt=f'goath_booking_{booking.id}',
+                        currency='INR',
+                        notes={
+                            'booking_id': str(booking.id),
+                            'venue_id': str(venue.id),
+                            'user_id': str(request.user.id),
+                        },
+                    )
+                except RazorpayError as rzp_err:
+                    booking.delete()
+                    return Response({'error': str(rzp_err)}, status=status.HTTP_502_BAD_GATEWAY)
+
+                payment = Payment.objects.create(
+                    booking=booking,
+                    amount=total_price,
+                    currency='INR',
+                    provider='RAZORPAY',
+                    razorpay_order_id=order['id'],
+                    status='pending',
+                )
+
+                return Response({
+                    'provider': 'RAZORPAY',
+                    'payment_id': payment.id,
+                    'booking_id': booking.id,
+                    'order_id': order['id'],
+                    'key_id': settings.RAZORPAY_KEY_ID.strip(),
+                    'amount': str(total_price),
+                    'amount_paise': amount_paise,
+                    'currency': 'INR',
+                    'venue_name': venue.name,
+                    'prefill': prefill,
+                })
+
+            if not settings.DEBUG:
+                return Response(
+                    {'error': 'Razorpay is not configured on the server.'},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+
+            # Local DEBUG fallback when Razorpay keys are not set yet
             booking = Booking.objects.create(
                 user=request.user,
                 venue=venue,
@@ -120,53 +198,145 @@ class PaymentIntentView(APIView):
                 start_time=start_time,
                 end_time=end_time,
                 total_price=total_price,
-                status='pending'
+                status='pending',
             )
-
-            # Create pending payment
             payment = Payment.objects.create(
                 booking=booking,
                 amount=total_price,
                 currency='INR',
                 provider='MOCK',
-                status='pending'
+                status='pending',
             )
-
-            # Mock client secret for MVP
-            client_secret = f"mock_secret_{uuid.uuid4()}"
-
             return Response({
+                'provider': 'MOCK',
                 'payment_id': payment.id,
-                'clientSecret': client_secret,
-                'amount': total_price,
+                'booking_id': booking.id,
+                'clientSecret': f"mock_secret_{uuid.uuid4()}",
+                'amount': str(total_price),
+                'amount_paise': amount_paise,
+                'currency': 'INR',
+                'venue_name': venue.name,
+                'prefill': prefill,
             })
+        except Venue.DoesNotExist:
+            return Response({'error': 'Venue not found.'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class PaymentConfirmView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         payment_id = request.data.get('payment_id')
-        transaction_id = request.data.get('transaction_id')
+        razorpay_order_id = (request.data.get('razorpay_order_id') or '').strip()
+        razorpay_payment_id = (request.data.get('razorpay_payment_id') or '').strip()
+        razorpay_signature = (request.data.get('razorpay_signature') or '').strip()
+        transaction_id = (request.data.get('transaction_id') or '').strip()
 
         try:
-            payment = Payment.objects.get(id=payment_id, booking__user=request.user)
-            
-            # Mock success behavior
-            payment.status = 'completed'
-            payment.transaction_id = transaction_id
-            payment.save()
+            payment = Payment.objects.select_related('booking').get(id=payment_id, booking__user=request.user)
+
+            if payment.status == 'completed':
+                return Response({
+                    'status': 'success',
+                    'message': 'Payment already confirmed.',
+                    'booking_id': payment.booking_id,
+                })
+
+            if payment.provider == 'RAZORPAY':
+                if not (razorpay_order_id and razorpay_payment_id and razorpay_signature):
+                    return Response(
+                        {'error': 'Missing Razorpay payment verification parameters.'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                if payment.razorpay_order_id and payment.razorpay_order_id != razorpay_order_id:
+                    return Response(
+                        {'error': 'Razorpay order ID mismatch.'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                if not verify_payment_signature(razorpay_order_id, razorpay_payment_id, razorpay_signature):
+                    payment.status = 'failed'
+                    payment.save(update_fields=['status', 'updated_at'])
+                    return Response(
+                        {'error': 'Invalid Razorpay payment signature.'},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                payment.transaction_id = razorpay_payment_id
+                payment.razorpay_signature = razorpay_signature
+                payment.status = 'completed'
+                payment.save(update_fields=['transaction_id', 'razorpay_signature', 'status', 'updated_at'])
+            else:
+                if not settings.DEBUG:
+                    return Response(
+                        {'error': 'Mock payments are disabled in production.'},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                payment.status = 'completed'
+                payment.transaction_id = transaction_id or f"mock_txn_{uuid.uuid4().hex[:12]}"
+                payment.save(update_fields=['transaction_id', 'status', 'updated_at'])
 
             booking = payment.booking
             booking.status = 'confirmed'
-            booking.save()
+            booking.save(update_fields=['status', 'updated_at'])
 
-            return Response({'status': 'success', 'message': 'Payment confirmed and booking finalized.'})
+            return Response({
+                'status': 'success',
+                'message': 'Payment confirmed and booking finalized.',
+                'booking_id': booking.id,
+                'transaction_id': payment.transaction_id,
+            })
         except Payment.DoesNotExist:
             return Response({'error': 'Payment not found.'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class RazorpayWebhookView(APIView):
+    """Server-to-server webhook for payment.captured, order.paid, and payment.failed."""
+    permission_classes = (permissions.AllowAny,)
+    authentication_classes = ()
+
+    def post(self, request):
+        received_sig = request.META.get('HTTP_X_RAZORPAY_SIGNATURE', '')
+        raw_body = request.body
+
+        if not verify_webhook_signature(raw_body, received_sig):
+            return Response({'error': 'Invalid webhook signature.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            payload = json.loads(raw_body.decode('utf-8'))
+        except Exception:
+            return Response({'error': 'Invalid JSON payload.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        event = payload.get('event', '')
+        payment_entity = payload.get('payload', {}).get('payment', {}).get('entity', {})
+        order_id = payment_entity.get('order_id') or payload.get('payload', {}).get('order', {}).get('entity', {}).get('id')
+        razorpay_payment_id = payment_entity.get('id')
+
+        if not order_id:
+            return Response({'status': 'ignored'}, status=status.HTTP_200_OK)
+
+        payment = Payment.objects.select_related('booking').filter(razorpay_order_id=order_id).first()
+        if not payment:
+            return Response({'status': 'ignored'}, status=status.HTTP_200_OK)
+
+        if event in ('payment.captured', 'order.paid'):
+            if payment.status != 'completed':
+                payment.status = 'completed'
+                if razorpay_payment_id and not payment.transaction_id:
+                    payment.transaction_id = razorpay_payment_id
+                payment.save(update_fields=['status', 'transaction_id', 'updated_at'])
+            if payment.booking.status != 'confirmed':
+                payment.booking.status = 'confirmed'
+                payment.booking.save(update_fields=['status', 'updated_at'])
+        elif event == 'payment.failed':
+            if payment.status == 'pending':
+                payment.status = 'failed'
+                payment.save(update_fields=['status', 'updated_at'])
+
+        return Response({'status': 'ok'}, status=status.HTTP_200_OK)
 
 from .models import BookingRentalItem
 from .serializers import BookingRentalItemSerializer

@@ -47,18 +47,43 @@ class BookingNotifier extends StateNotifier<AsyncValue<List<Booking>>> {
         'start_time': startTime,
         'end_time': endTime,
       });
-      return response.data;
+      return Map<String, dynamic>.from(response.data as Map);
+    } on DioException catch (e) {
+      final err = e.response?.data is Map ? e.response?.data['error'] : null;
+      if (err != null) {
+        return {'error': err.toString()};
+      }
+      return null;
     } catch (e) {
       return null;
     }
   }
 
-  Future<bool> confirmPayment(int paymentId, String transactionId) async {
+  Future<bool> confirmPayment(
+    int paymentId, {
+    String? transactionId,
+    String? razorpayOrderId,
+    String? razorpayPaymentId,
+    String? razorpaySignature,
+  }) async {
     try {
-      await _dio.post('bookings/payments/confirm/', data: {
+      final payload = <String, dynamic>{
         'payment_id': paymentId,
-        'transaction_id': transactionId,
-      });
+      };
+      if (transactionId != null && transactionId.isNotEmpty) {
+        payload['transaction_id'] = transactionId;
+      }
+      if (razorpayOrderId != null && razorpayOrderId.isNotEmpty) {
+        payload['razorpay_order_id'] = razorpayOrderId;
+      }
+      if (razorpayPaymentId != null && razorpayPaymentId.isNotEmpty) {
+        payload['razorpay_payment_id'] = razorpayPaymentId;
+      }
+      if (razorpaySignature != null && razorpaySignature.isNotEmpty) {
+        payload['razorpay_signature'] = razorpaySignature;
+      }
+
+      await _dio.post('bookings/payments/confirm/', data: payload);
       await fetchMyBookings();
       return true;
     } catch (e) {

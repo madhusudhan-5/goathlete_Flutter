@@ -32,6 +32,7 @@ class Payment(models.Model):
         ('failed', 'Failed'),
     )
     PROVIDER_CHOICES = (
+        ('RAZORPAY', 'Razorpay'),
         ('MOCK', 'Mock API'),
         ('STRIPE', 'Stripe'),
     )
@@ -39,8 +40,10 @@ class Payment(models.Model):
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     currency = models.CharField(max_length=3, default='INR')
-    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, default='MOCK')
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, default='RAZORPAY')
+    razorpay_order_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
     transaction_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
+    razorpay_signature = models.CharField(max_length=255, blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
     created_at = models.DateTimeField(auto_now_add=True)
