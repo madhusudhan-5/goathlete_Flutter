@@ -149,16 +149,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isAuthenticated: false);
   }
 
-  Future<String?> completeProfile(String firstName, String email, String dob) async {
+  Future<String?> completeProfile(
+    String firstName,
+    String email,
+    String dob, {
+    String? phoneNumber,
+  }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final response = await _dio.put('users/profile/update/', data: {
+      final payload = <String, dynamic>{
         'first_name': firstName,
         'email': email,
         'date_of_birth': dob,
-      });
+      };
+      if (phoneNumber != null && phoneNumber.trim().isNotEmpty) {
+        payload['phone_number'] = phoneNumber.trim();
+      }
+      final response = await _dio.put('users/profile/update/', data: payload);
       state = state.copyWith(isLoading: false);
       return response.data['goath_id'] as String?;
+    } on DioException catch (e) {
+      final backendError = e.response?.data is Map ? e.response?.data['error'] : null;
+      state = state.copyWith(
+        isLoading: false,
+        error: backendError?.toString() ?? 'Failed to update profile.',
+      );
+      return null;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: 'Failed to update profile.');
       return null;

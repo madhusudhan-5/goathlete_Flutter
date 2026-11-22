@@ -229,6 +229,45 @@ class RegisterView(generics.CreateAPIView):
     authentication_classes = ()
     serializer_class = RegisterSerializer
 
+
+class FlexibleLoginView(APIView):
+    """JWT login supporting username, email (case-insensitive), or phone number."""
+    permission_classes = (permissions.AllowAny,)
+    authentication_classes = ()
+
+    def post(self, request):
+        identifier = (request.data.get('username') or request.data.get('email') or '').strip()
+        password = request.data.get('password') or ''
+
+        if not identifier or not password:
+            return Response(
+                {'detail': 'Username/email and password are required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = User.objects.filter(username__iexact=identifier).first()
+        if not user and '@' in identifier:
+            user = User.objects.filter(email__iexact=identifier).first()
+        if not user:
+            prof = UserProfile.objects.select_related('user').filter(phone_number=identifier).first()
+            if prof:
+                user = prof.user
+
+        if not user or not user.is_active or not user.check_password(password):
+            return Response(
+                {'detail': 'No active account found with the given credentials.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            },
+            status=status.HTTP_200_OK,
+        )
+
 class ProfileView(generics.RetrieveAPIView):
     permission_classes = (permissions.IsAuthenticated,)
     serializer_class = ProfileSerializer
@@ -245,6 +284,7 @@ class ProfileUpdateView(APIView):
         
         first_name = request.data.get('first_name')
         email = request.data.get('email')
+        phone_number = request.data.get('phone_number')
         date_of_birth = request.data.get('date_of_birth')
         profile_picture = request.FILES.get('profile_picture')
         
@@ -253,11 +293,20 @@ class ProfileUpdateView(APIView):
         bio = request.data.get('bio')
         
         if first_name:
-            user.first_name = first_name
+            user.first_name = first_name.strip()
         if email:
-            if User.objects.exclude(id=user.id).filter(email=email).exists():
+            clean_email = email.strip().lower()
+            if User.objects.exclude(id=user.id).filter(email__iexact=clean_email).exists():
                 return Response({'error': 'Email is already in use.'}, status=status.HTTP_400_BAD_REQUEST)
-            user.email = email
+            user.email = clean_email
+        if phone_number:
+            clean_phone = str(phone_number).strip()
+            pattern = re.compile(r'^(?:\+91|91)?[6789]\d{9}$')
+            if not pattern.match(clean_phone):
+                return Response({'error': 'Enter a valid 10-digit Indian phone number.'}, status=status.HTTP_400_BAD_REQUEST)
+            if UserProfile.objects.exclude(user=user).filter(phone_number=clean_phone).exists():
+                return Response({'error': 'Phone number is already linked to another account.'}, status=status.HTTP_400_BAD_REQUEST)
+            profile.phone_number = clean_phone
         user.save()
         
         if date_of_birth:

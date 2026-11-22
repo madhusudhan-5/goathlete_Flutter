@@ -30,7 +30,7 @@ class UserProfile(models.Model):
     
     @property
     def is_profile_complete(self):
-        return bool(self.user.first_name and self.user.email and self.date_of_birth)
+        return bool(self.user.first_name and self.user.email and self.date_of_birth and self.phone_number)
 
     def __str__(self):
         return f"{self.user.username} - {self.phone_number}"
