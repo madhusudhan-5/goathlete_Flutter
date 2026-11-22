@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,9 +29,56 @@ class _VenueOnboardingScreenState extends ConsumerState<VenueOnboardingScreen> {
   final _notesController = TextEditingController();
   DateTime? _meetingDate;
 
-  // Step 5 Controllers (License & Pricing)
+  // Step 5 Controllers (Ground Type, License & Sports Pricing)
   final _licenseController = TextEditingController();
   final _sportsPricesController = TextEditingController();
+
+  static const List<String> _groundTypes = [
+    'Artificial Turf',
+    'Natural Grass',
+    'Indoor Wooden Court',
+    'Synthetic / Acrylic Court',
+    'Clay Court',
+    'Concrete / Hard Court',
+    'Swimming Pool',
+    'Indoor Arena / Hall',
+    'Other',
+  ];
+
+  static const List<String> _availableSports = [
+    'Box Cricket',
+    'Cricket',
+    'Football',
+    'Badminton',
+    'Pickleball',
+    'Tennis',
+    'Basketball',
+    'Volleyball',
+    'Table Tennis',
+    'Padel',
+    'Squash',
+    'Swimming',
+    'Kabaddi',
+  ];
+
+  String _selectedGroundType = 'Artificial Turf';
+  final Map<String, TextEditingController> _sportPriceControllers = {};
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _ownerController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    _addressController.dispose();
+    _notesController.dispose();
+    _licenseController.dispose();
+    _sportsPricesController.dispose();
+    for (final c in _sportPriceControllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
 
   bool _isSubmitting = false;
 
@@ -101,8 +149,20 @@ class _VenueOnboardingScreenState extends ConsumerState<VenueOnboardingScreen> {
     if (_selectedFiles.isNotEmpty) data['document_url'] = 'https://dummy-storage.goathlete.com/${_selectedFiles.first.name}';
     if (_meetingDate != null) data['meeting_date'] = _meetingDate!.toIso8601String();
     if (_notesController.text.isNotEmpty) data['meeting_notes'] = _notesController.text;
-    if (_licenseController.text.isNotEmpty) data['license_number'] = _licenseController.text;
-    if (_sportsPricesController.text.isNotEmpty) data['sports_prices'] = _sportsPricesController.text;
+    data['ground_type'] = _selectedGroundType;
+    if (_licenseController.text.isNotEmpty) data['license_number'] = _licenseController.text.trim();
+
+    if (_sportPriceControllers.isNotEmpty) {
+      final Map<String, dynamic> sportsMap = {};
+      _sportPriceControllers.forEach((sport, ctrl) {
+        final raw = ctrl.text.trim();
+        final parsed = double.tryParse(raw);
+        sportsMap[sport] = parsed ?? (raw.isNotEmpty ? raw : 0);
+      });
+      data['sports_prices'] = jsonEncode(sportsMap);
+    } else if (_sportsPricesController.text.isNotEmpty) {
+      data['sports_prices'] = _sportsPricesController.text.trim();
+    }
     
     try {
       await ref.read(venueSubmitProvider(data).future);
@@ -270,19 +330,98 @@ class _VenueOnboardingScreenState extends ConsumerState<VenueOnboardingScreen> {
             ),
           ),
           Step(
-            title: const Text('License & Pricing'),
+            title: const Text('Ground, License & Sports'),
             isActive: _currentStep >= 4,
             state: _currentStep == 4 ? StepState.editing : StepState.indexed,
             content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                DropdownButtonFormField<String>(
+                  value: _selectedGroundType,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Ground / Surface Type',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: _groundTypes
+                      .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                      .toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() => _selectedGroundType = val);
+                    }
+                  },
+                ),
+                const SizedBox(height: 14),
                 TextField(
                   controller: _licenseController,
-                  decoration: const InputDecoration(labelText: 'License Number (Optional)'),
+                  decoration: const InputDecoration(
+                    labelText: 'License / Registration Number',
+                    hintText: 'e.g. Trade License / GST / Sports Club ID',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Select Available Sports',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: _availableSports.map((sport) {
+                    final isSelected = _sportPriceControllers.containsKey(sport);
+                    return FilterChip(
+                      label: Text(sport),
+                      selected: isSelected,
+                      selectedColor: GoAthleteColors.athleticOrange.withValues(alpha: 0.22),
+                      checkmarkColor: GoAthleteColors.athleticOrange,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _sportPriceControllers[sport] = TextEditingController();
+                          } else {
+                            _sportPriceControllers.remove(sport)?.dispose();
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+                if (_sportPriceControllers.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Hourly Price per Sport (₹/hr)',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  ..._sportPriceControllers.entries.map((entry) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: TextField(
+                        controller: entry.value,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          labelText: '${entry.key} — Price / hr (₹)',
+                          hintText: 'e.g. 1200',
+                          prefixText: '₹ ',
+                          border: const OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+                const SizedBox(height: 10),
                 TextField(
                   controller: _sportsPricesController,
-                  decoration: const InputDecoration(labelText: 'Sports Data Prices (JSON or text)'),
-                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Additional Sports / Pricing Notes (Optional)',
+                    hintText: 'Any extra sports or custom peak/off-peak notes',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
                 ),
               ],
             ),

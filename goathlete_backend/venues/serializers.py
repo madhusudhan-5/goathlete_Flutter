@@ -33,7 +33,8 @@ class VenueSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'description', 'location', 'distance', 
             'latitude', 'longitude', 'rating', 'reviews_count', 
-            'image_url', 'price_per_hour', 'sports', 'amenities', 
+            'image_url', 'price_per_hour', 'ground_type',
+            'license_number', 'sports_prices', 'sports', 'amenities', 
             'owner', 'owner_details'
         ]
 

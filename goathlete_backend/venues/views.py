@@ -356,15 +356,50 @@ class PreRegisteredVenueViewSet(viewsets.ModelViewSet):
                     resolved_loc = geocoded_name
                     venue.address = geocoded_name
 
+            parsed_sports = {}
+            base_price = 0.0
+            if venue.sports_prices:
+                try:
+                    import json as _json
+                    raw_parsed = _json.loads(venue.sports_prices)
+                    if isinstance(raw_parsed, dict):
+                        parsed_sports = raw_parsed
+                        numeric_prices = []
+                        for _val in raw_parsed.values():
+                            try:
+                                p = float(_val)
+                                if p > 0:
+                                    numeric_prices.append(p)
+                            except (TypeError, ValueError):
+                                pass
+                        if numeric_prices:
+                            base_price = min(numeric_prices)
+                except Exception:
+                    pass
+
             real_venue = Venue.objects.create(
                 name=venue.name,
                 location=resolved_loc,
                 owner=user,
                 latitude=venue.latitude,
                 longitude=venue.longitude,
+                ground_type=venue.ground_type,
                 license_number=venue.license_number,
-                sports_prices=venue.sports_prices
+                sports_prices=venue.sports_prices,
+                price_per_hour=base_price,
             )
+
+            # Link selected sports to the newly approved Venue
+            for sport_name in parsed_sports.keys():
+                clean_name = str(sport_name).strip()
+                if not clean_name:
+                    continue
+                sport_obj, _ = Sport.objects.get_or_create(
+                    name__iexact=clean_name,
+                    defaults={'name': clean_name, 'icon_name': 'sports'},
+                )
+                VenueSport.objects.get_or_create(venue=real_venue, sport=sport_obj)
+
             venue.real_venue = real_venue
             
         venue.save()

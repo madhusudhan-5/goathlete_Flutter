@@ -2,7 +2,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-final String _baseUrl = 'http://127.0.0.1:8000/api/';
+const String _rawApiOrigin = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'https://api.goathlete.org.in',
+);
+final String _baseUrl = _rawApiOrigin.endsWith('/api/')
+    ? _rawApiOrigin
+    : '${_rawApiOrigin.replaceAll(RegExp(r'/+$'), '')}/api/';
 
 
 
