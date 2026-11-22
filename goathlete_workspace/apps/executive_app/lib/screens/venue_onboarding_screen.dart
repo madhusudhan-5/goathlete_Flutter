@@ -146,7 +146,6 @@ class _VenueOnboardingScreenState extends ConsumerState<VenueOnboardingScreen> {
     if (_addressController.text.isNotEmpty) data['address'] = _addressController.text;
     if (_latitude != null) data['latitude'] = _latitude!.toStringAsFixed(6);
     if (_longitude != null) data['longitude'] = _longitude!.toStringAsFixed(6);
-    if (_selectedFiles.isNotEmpty) data['document_url'] = 'https://dummy-storage.goathlete.com/${_selectedFiles.first.name}';
     if (_meetingDate != null) data['meeting_date'] = _meetingDate!.toIso8601String();
     if (_notesController.text.isNotEmpty) data['meeting_notes'] = _notesController.text;
     data['ground_type'] = _selectedGroundType;
@@ -165,7 +164,14 @@ class _VenueOnboardingScreenState extends ConsumerState<VenueOnboardingScreen> {
     }
     
     try {
-      await ref.read(venueSubmitProvider(data).future);
+      await ref.read(
+        venueSubmitProvider(
+          VenueSubmissionPayload(
+            fields: data,
+            imageFiles: List<XFile>.from(_selectedFiles),
+          ),
+        ).future,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Venue Pre-Registered successfully!')),

@@ -3,6 +3,7 @@ import 'package:core_ui/core_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/booking_provider.dart';
+import '../../widgets/venue_image_carousel.dart';
 
 class VenueDetailsScreen extends ConsumerWidget {
   const VenueDetailsScreen({super.key});
@@ -13,11 +14,30 @@ class VenueDetailsScreen extends ConsumerWidget {
     final venue = flowState.venue ?? {};
     final venueName = venue['name'] ?? 'Unknown Venue';
     final venueRating = venue['rating']?.toString() ?? 'N/A';
-    final venueDistance = venue['distance'] ?? '';
-    final String? venueImage = (venue['image_url'] != null && venue['image_url'].toString().isNotEmpty) ? venue['image_url'] : null;
+    final venueDistance = (venue['distance'] ?? '').toString();
+    final venueLocation = (venue['location'] ?? '').toString();
+    final groundType = (venue['ground_type'] ?? '').toString();
+    final description = (venue['description'] ?? '').toString();
+    final List<String> venueImages = [];
+    if (venue['images'] is List) {
+      for (final item in venue['images'] as List) {
+        final s = item?.toString().trim() ?? '';
+        if (s.isNotEmpty) venueImages.add(s);
+      }
+    }
+    if (venueImages.isEmpty && venue['image_url'] != null && venue['image_url'].toString().trim().isNotEmpty) {
+      venueImages.add(venue['image_url'].toString().trim());
+    }
+    final List<String> sportsList = [];
+    if (venue['sports'] is List) {
+      for (final s in venue['sports'] as List) {
+        final str = s?.toString().trim() ?? '';
+        if (str.isNotEmpty) sportsList.add(str);
+      }
+    }
     final pricePerHour = venue['price_per_hour'] ?? 0;
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -38,25 +58,11 @@ class VenueDetailsScreen extends ConsumerWidget {
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              background: venueImage != null
-                  ? Image.network(
-                      venueImage,
-                      fit: BoxFit.cover,
-                      color: Colors.black.withOpacity(0.3),
-                      colorBlendMode: BlendMode.darken,
-                    )
-                  : Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [GoAthleteColors.deepNavy, GoAthleteColors.athleticOrange],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.sports, size: 80, color: Colors.white54),
-                      ),
-                    ),
+              background: VenueImageCarousel(
+                imageUrls: venueImages,
+                height: 300,
+                darkenOverlay: true,
+              ),
             ),
           ),
           SliverToBoxAdapter(
@@ -86,16 +92,32 @@ class VenueDetailsScreen extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text('$venueDistance away', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                  Text(
+                    [
+                      if (venueLocation.isNotEmpty) venueLocation,
+                      if (venueDistance.isNotEmpty) venueDistance,
+                    ].join(' • '),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ),
+                  if (groundType.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Chip(
+                      avatar: const Icon(Icons.grass, size: 18, color: GoAthleteColors.athleticOrange),
+                      label: Text('Ground: $groundType'),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   Text('Available Sports', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _buildSportChip(context, Icons.sports_soccer, 'Football'),
-                      const SizedBox(width: 12),
-                      _buildSportChip(context, Icons.sports_cricket, 'Cricket'),
-                    ],
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: sportsList.isNotEmpty
+                        ? sportsList.map((s) => _buildSportChip(context, Icons.sports, s)).toList()
+                        : [
+                            _buildSportChip(context, Icons.sports_soccer, 'Football'),
+                            _buildSportChip(context, Icons.sports_cricket, 'Cricket'),
+                          ],
                   ),
                   const SizedBox(height: 24),
                   Text('Amenities', style: Theme.of(context).textTheme.titleLarge),
@@ -114,7 +136,9 @@ class VenueDetailsScreen extends ConsumerWidget {
                   Text('About', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 12),
                   Text(
-                    'Smash It Turf offers premium artificial grass for 5v5 and 7v7 football and box cricket. Equipped with high-quality LED floodlights and excellent facilities.',
+                    description.isNotEmpty
+                        ? description
+                        : '$venueName offers quality sports facilities with well-maintained grounds and convenient slot bookings.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.5),
                   ),
                   const SizedBox(height: 100), // padding for bottom bar

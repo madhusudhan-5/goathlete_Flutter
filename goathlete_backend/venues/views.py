@@ -299,6 +299,7 @@ class PreRegisteredVenueViewSet(viewsets.ModelViewSet):
         return PreRegisteredVenue.objects.filter(executive=user)
 
     def perform_create(self, serializer):
+        from .models import VenueImage
         lat = serializer.validated_data.get('latitude')
         lng = serializer.validated_data.get('longitude')
         addr = (serializer.validated_data.get('address') or '').strip()
@@ -307,7 +308,17 @@ class PreRegisteredVenueViewSet(viewsets.ModelViewSet):
             resolved = _reverse_geocode_coords(lat, lng)
             if resolved:
                 extra['address'] = resolved
-        serializer.save(**extra)
+        instance = serializer.save(**extra)
+
+        uploaded_files = self.request.FILES.getlist('images') or self.request.FILES.getlist('image')
+        first_url = None
+        for file_obj in uploaded_files:
+            vi = VenueImage.objects.create(preregistered_venue=instance, image=file_obj)
+            if first_url is None and vi.image:
+                first_url = self.request.build_absolute_uri(vi.image.url)
+        if first_url and (not instance.document_url or instance.document_url.startswith('https://dummy-storage')):
+            instance.document_url = first_url
+            instance.save(update_fields=['document_url'])
 
     from rest_framework.decorators import action
     from rest_framework.response import Response

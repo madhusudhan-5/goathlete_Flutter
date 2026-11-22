@@ -32,7 +32,10 @@ final pendingVenuesProvider = FutureProvider<List<dynamic>>((ref) async {
   try {
     final response = await dio.get('venues/pre-register-venues/');
     final list = response.data as List<dynamic>;
-    return list.where((v) => v['status'] == 'PENDING_APPROVAL' || v['status'] == 'pending' || v['status'] == null).toList();
+    return list.where((v) {
+      final st = (v['status'] ?? '').toString().toUpperCase();
+      return st == 'PENDING_APPROVAL' || st == 'PENDING' || st == 'DRAFT' || st.isEmpty;
+    }).toList();
   } catch (e) {
     return [];
   }
@@ -40,22 +43,14 @@ final pendingVenuesProvider = FutureProvider<List<dynamic>>((ref) async {
 
 final approveVenueProvider = FutureProvider.family<bool, int>((ref, id) async {
   final dio = ref.read(dioProvider);
-  try {
-    final response = await dio.post('venues/pre-register-venues/$id/approve/');
-    return response.statusCode == 200 || response.statusCode == 201;
-  } catch (e) {
-    return true; // Optimistic fallback for demo
-  }
+  final response = await dio.post('venues/pre-register-venues/$id/approve/');
+  return response.statusCode == 200 || response.statusCode == 201;
 });
 
 final rejectVenueProvider = FutureProvider.family<bool, int>((ref, id) async {
   final dio = ref.read(dioProvider);
-  try {
-    final response = await dio.post('venues/pre-register-venues/$id/reject/');
-    return response.statusCode == 200;
-  } catch (e) {
-    return true;
-  }
+  final response = await dio.post('venues/pre-register-venues/$id/reject/');
+  return response.statusCode == 200;
 });
 
 final executivesProvider = FutureProvider<List<dynamic>>((ref) async {

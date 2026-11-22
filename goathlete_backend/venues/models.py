@@ -133,3 +133,29 @@ class CourtSlotPricing(models.Model):
 
     def __str__(self):
         return f"{self.court.name} - {self.time_period} ({self.price})"
+
+
+class VenueImage(models.Model):
+    preregistered_venue = models.ForeignKey(
+        PreRegisteredVenue,
+        related_name='images',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    venue = models.ForeignKey(
+        Venue,
+        related_name='images',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    image = models.ImageField(upload_to='venue_images/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        target = self.venue or self.preregistered_venue
+        return f"Image #{self.id} for {target}"

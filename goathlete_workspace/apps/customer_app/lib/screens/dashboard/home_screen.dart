@@ -11,6 +11,7 @@ import '../../providers/booking_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/sports_news_provider.dart';
 import '../../widgets/app_drawer.dart';
+import '../../widgets/venue_image_carousel.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
@@ -744,9 +745,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           venue: {
             'id': venue.id,
             'name': venue.name,
+            'description': venue.description,
             'location': venue.location,
             'price_per_hour': venue.pricePerHour,
             'image_url': venue.imageUrl,
+            'images': venue.allImageUrls,
+            'ground_type': venue.groundType,
+            'sports': venue.sports.map((s) => s.sport.name).toList(),
             'distance': venue.distance,
             'rating': venue.rating,
           },
@@ -760,44 +765,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                height: 140,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  image: DecorationImage(
-                    image: NetworkImage(venue.imageUrl.isNotEmpty
-                        ? venue.imageUrl
-                        : 'https://placehold.co/400x200/png'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.star,
-                                color: Colors.orange, size: 16),
-                            const SizedBox(width: 4),
-                            Text('${venue.rating}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
-                                    ?.copyWith(color: Colors.white)),
-                          ],
-                        ),
-                      ),
+              VenueImageCarousel(
+                imageUrls: venue.allImageUrls,
+                height: 160,
+                borderRadius: BorderRadius.circular(16),
+                overlayChild: Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ],
+                    child: Row(
+                      children: [
+                        const Icon(Icons.star,
+                            color: Colors.orange, size: 16),
+                        const SizedBox(width: 4),
+                        Text('${venue.rating}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(color: Colors.white)),
+                      ],
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

@@ -71,17 +71,28 @@ def approve_preregistered_venue(prereg, reverse_geocode_fn=None):
             except Exception:
                 pass
 
+        first_image = prereg.images.first()
+        primary_image_url = ''
+        if first_image and first_image.image:
+            primary_image_url = first_image.image.url
+        elif prereg.document_url and not prereg.document_url.startswith('https://dummy-storage'):
+            primary_image_url = prereg.document_url
+
         real_venue = Venue.objects.create(
             name=prereg.name,
             location=resolved_loc,
             owner=user,
             latitude=prereg.latitude,
             longitude=prereg.longitude,
+            image_url=primary_image_url,
             ground_type=prereg.ground_type,
             license_number=prereg.license_number,
             sports_prices=prereg.sports_prices,
             price_per_hour=base_price,
         )
+
+        # Link all uploaded onboarding photos to the live Venue
+        prereg.images.update(venue=real_venue)
 
         for sport_name in parsed_sports.keys():
             clean_name = str(sport_name).strip()

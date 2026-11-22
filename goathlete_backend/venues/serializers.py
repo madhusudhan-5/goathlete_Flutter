@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Venue, Sport, VenueSport, Amenity, PreRegisteredVenue
+from .models import Venue, Sport, VenueSport, Amenity, PreRegisteredVenue, VenueImage
 
 class SportSerializer(serializers.ModelSerializer):
     class Meta:
@@ -23,6 +23,7 @@ class VenueSerializer(serializers.ModelSerializer):
     amenities = AmenitySerializer(many=True, read_only=True)
     owner_details = serializers.SerializerMethodField(read_only=True)
     distance = serializers.SerializerMethodField(read_only=True)
+    images = serializers.SerializerMethodField(read_only=True)
     latitude = serializers.FloatField(required=False, allow_null=True)
     longitude = serializers.FloatField(required=False, allow_null=True)
     rating = serializers.FloatField(required=False, default=0.0)
@@ -33,10 +34,26 @@ class VenueSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'description', 'location', 'distance', 
             'latitude', 'longitude', 'rating', 'reviews_count', 
-            'image_url', 'price_per_hour', 'ground_type',
+            'image_url', 'images', 'price_per_hour', 'ground_type',
             'license_number', 'sports_prices', 'sports', 'amenities', 
             'owner', 'owner_details'
         ]
+
+    def get_images(self, obj):
+        request = self.context.get('request')
+        urls = []
+        for img in obj.images.all():
+            if img.image:
+                url = img.image.url
+                if request is not None:
+                    url = request.build_absolute_uri(url)
+                urls.append(url)
+        if not urls and obj.image_url:
+            url = obj.image_url
+            if request is not None and url.startswith('/'):
+                url = request.build_absolute_uri(url)
+            urls.append(url)
+        return urls
 
     def get_distance(self, obj):
         if obj.latitude is not None and obj.longitude is not None:
@@ -77,10 +94,23 @@ class VenueSerializer(serializers.ModelSerializer):
         return None
 
 class PreRegisteredVenueSerializer(serializers.ModelSerializer):
+    images = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = PreRegisteredVenue
         fields = '__all__'
         read_only_fields = ['executive', 'status']
+
+    def get_images(self, obj):
+        request = self.context.get('request')
+        urls = []
+        for img in obj.images.all():
+            if img.image:
+                url = img.image.url
+                if request is not None:
+                    url = request.build_absolute_uri(url)
+                urls.append(url)
+        return urls
 
 from .models import VendorPartner, RentalItem
 

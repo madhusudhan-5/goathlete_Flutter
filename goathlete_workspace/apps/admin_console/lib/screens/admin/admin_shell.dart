@@ -491,6 +491,22 @@ class AdminKycApprovalsTab extends ConsumerWidget {
                                     const SizedBox(height: 4),
                                     Text('Owner: ${v['owner_name'] ?? 'N/A'} | Phone: ${v['phone_number'] ?? 'N/A'}', style: Theme.of(context).textTheme.bodyMedium),
                                     Text('Address: ${v['address'] ?? 'N/A'}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                                    if ((v['ground_type'] ?? '').toString().isNotEmpty || (v['license_number'] ?? '').toString().isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text(
+                                          'Ground: ${(v['ground_type'] ?? '').toString().isNotEmpty ? v['ground_type'] : 'N/A'} | License: ${(v['license_number'] ?? '').toString().isNotEmpty ? v['license_number'] : 'N/A'}',
+                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: GoAthleteColors.athleticOrange, fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    if ((v['sports_prices'] ?? '').toString().isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 2),
+                                        child: Text(
+                                          'Sports & Pricing: ${v['sports_prices']}',
+                                          style: Theme.of(context).textTheme.bodySmall,
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ),
