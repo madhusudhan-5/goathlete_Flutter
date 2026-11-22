@@ -12,10 +12,10 @@ class AppConfig {
 
   static const String webAppUrl = String.fromEnvironment(
     'WEB_APP_URL',
-    defaultValue: 'https://app.goathlete.com',
+    defaultValue: 'https://app.goathelet.org.in',
   );
 
-  /// Backend origin without trailing slash, e.g. `https://api.goathlete.com`.
+  /// Backend origin without trailing slash, e.g. `https://api.goathelet.org.in`.
   static String get apiOrigin {
     var trimmed = _rawApiBaseUrl.trim();
     if (trimmed.endsWith('/api/')) {
@@ -29,7 +29,7 @@ class AppConfig {
     return trimmed;
   }
 
-  /// Backend REST API base URL with trailing slash, e.g. `https://api.goathlete.com/api/`.
+  /// Backend REST API base URL with trailing slash, e.g. `https://api.goathelet.org.in/api/`.
   static String get apiBaseUrl => '$apiOrigin/api/';
 
   /// Resolves relative media paths like `/media/avatars/pic.jpg` against [apiOrigin].

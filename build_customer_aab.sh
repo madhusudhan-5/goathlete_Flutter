@@ -5,7 +5,7 @@
 # ==============================================================================
 # Usage:
 #   ./build_customer_aab.sh
-#   API_BASE_URL=https://api.goathlete.com ./build_customer_aab.sh
+#   API_BASE_URL=https://api.goathelet.org.in ./build_customer_aab.sh
 # ==============================================================================
 
 set -euo pipefail
@@ -13,8 +13,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="$SCRIPT_DIR/goathlete_workspace/apps/customer_app"
 
-API_BASE_URL="${API_BASE_URL:-https://api.goathlete.com}"
-WEB_APP_URL="${WEB_APP_URL:-https://app.goathlete.com}"
+API_BASE_URL="${API_BASE_URL:-https://api.goathelet.org.in}"
+WEB_APP_URL="${WEB_APP_URL:-https://app.goathelet.org.in}"
 GOOGLE_WEB_CLIENT_ID="${GOOGLE_WEB_CLIENT_ID:-740629489616-c6j07tvj7gg7a6ulfpsu8tmptf151adu.apps.googleusercontent.com}"
 
 VERSION_NAME=$(grep -E '^version:' "$APP_DIR/pubspec.yaml" | awk '{print $2}' | cut -d'+' -f1)

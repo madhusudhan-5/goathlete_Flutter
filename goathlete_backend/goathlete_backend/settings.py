@@ -57,7 +57,7 @@ ANDROID_PLAY_STORE_URL = os.environ.get(
     f'https://play.google.com/store/apps/details?id={ANDROID_PACKAGE_NAME}',
 )
 ANDROID_BETA_PUBLIC_URL = os.environ.get('ANDROID_BETA_PUBLIC_URL', '')
-IOS_WEB_APP_URL = os.environ.get('IOS_WEB_APP_URL', 'https://app.goathlete.com')
+IOS_WEB_APP_URL = os.environ.get('IOS_WEB_APP_URL', 'https://app.goathelet.org.in')
 
 
 
