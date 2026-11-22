@@ -32,13 +32,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    final devOtp = await ref.read(authProvider.notifier).sendOTP(phone);
-    if (devOtp != null) {
+    final result = await ref.read(authProvider.notifier).sendOTP(phone);
+    if (result != null && mounted) {
       setState(() {
         _otpSent = true;
-        _devOtp = devOtp;
+        _devOtp = result.isNotEmpty ? result : null;
       });
-      _otpController.text = devOtp;
+      if (result.isNotEmpty) {
+        _otpController.text = result;
+      }
     }
   }
 
@@ -144,12 +146,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               hintText: 'Enter 6-digit OTP',
                             ),
                           ),
-                          if (_devOtp != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
+                          if (_devOtp != null && _devOtp!.isNotEmpty)
+                            Container(
+                              margin: const EdgeInsets.only(top: 10.0),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: GoAthleteColors.athleticOrange.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: GoAthleteColors.athleticOrange.withValues(alpha: 0.5),
+                                ),
+                              ),
                               child: Text(
-                                'Dev Mode OTP: $_devOtp',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: GoAthleteColors.athleticOrange),
+                                'Your OTP: $_devOtp',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: GoAthleteColors.athleticOrange,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.5,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                             ),

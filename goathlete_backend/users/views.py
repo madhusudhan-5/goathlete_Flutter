@@ -37,14 +37,21 @@ class SendOTPView(APIView):
         otp_code = str(random.randint(100000, 999999))
         OTP.objects.create(phone_number=phone_number, otp_code=otp_code)
 
-        # Send SMS via Twilio
+        # Send SMS via Twilio only when real credentials are configured in .env
         sms_sent = False
         sms_error = None
-        account_sid = getattr(settings, 'TWILIO_ACCOUNT_SID', '')
-        auth_token = getattr(settings, 'TWILIO_AUTH_TOKEN', '')
-        messaging_service_sid = getattr(settings, 'TWILIO_MESSAGING_SERVICE_SID', '')
+        account_sid = (getattr(settings, 'TWILIO_ACCOUNT_SID', '') or '').strip()
+        auth_token = (getattr(settings, 'TWILIO_AUTH_TOKEN', '') or '').strip()
+        messaging_service_sid = (getattr(settings, 'TWILIO_MESSAGING_SERVICE_SID', '') or '').strip()
 
-        if account_sid and auth_token and messaging_service_sid and account_sid != 'placeholder':
+        has_real_twilio = (
+            account_sid.startswith('AC')
+            and messaging_service_sid.startswith('MG')
+            and bool(auth_token)
+            and auth_token not in ('placeholder', 'your_twilio_auth_token')
+        )
+
+        if has_real_twilio:
             try:
                 to_number = format_e164_indian(phone_number)
                 twilio_url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
@@ -53,7 +60,7 @@ class SendOTPView(APIView):
                     data={
                         'To': to_number,
                         'MessagingServiceSid': messaging_service_sid,
-                        'Body': f'Your GoAthlete verification OTP is {otp_code}. Valid for 10 minutes. 👋'
+                        'Body': f'Your GoAthlete verification OTP is {otp_code}. Valid for 10 minutes.'
                     },
                     auth=(account_sid, auth_token),
                     timeout=10
@@ -65,12 +72,16 @@ class SendOTPView(APIView):
             except Exception as e:
                 sms_error = str(e)
 
-        return Response({
-            'message': 'OTP sent successfully',
+        payload = {
+            'message': 'OTP sent successfully' if sms_sent else 'SMS not configured yet — use the OTP shown below.',
             'sms_sent': sms_sent,
             'sms_error': sms_error,
-            'dev_otp': otp_code
-        }, status=status.HTTP_200_OK)
+        }
+        # Show fallback OTP directly under the OTP field whenever SMS isn't sent (or in DEBUG)
+        if not sms_sent or settings.DEBUG:
+            payload['dev_otp'] = otp_code
+
+        return Response(payload, status=status.HTTP_200_OK)
 
 class VerifyOTPView(APIView):
     permission_classes = (permissions.AllowAny,)

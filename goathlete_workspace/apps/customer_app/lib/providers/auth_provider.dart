@@ -46,6 +46,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Returns the fallback/dev OTP string when SMS isn't configured, `''` when
+  /// sent via SMS, or `null` on failure.
   Future<String?> sendOTP(String phoneNumber) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
@@ -53,7 +55,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'phone_number': phoneNumber,
       });
       state = state.copyWith(isLoading: false);
-      return response.data['dev_otp'] as String?;
+      final devOtp = response.data['dev_otp'];
+      return devOtp != null ? devOtp.toString() : '';
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.connectionError) {
         state = state.copyWith(isLoading: false, error: 'Connection Error: Cannot reach server (is the server running and accessible?)');
