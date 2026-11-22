@@ -23,7 +23,7 @@ class RazorpayPaymentTests(TestCase):
         self.client = APIClient()
         self.user = User.objects.create_user(
             username="athlete_rzp",
-            email="athlete@goathelet.org.in",
+            email="athlete@goathlete.org.in",
             password="password123",
             first_name="Aarav",
         )

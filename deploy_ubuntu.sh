@@ -16,7 +16,7 @@ BRANCH="main"
 APP_ROOT="/var/www/goathlete"
 BACKEND_DIR="$APP_ROOT/goathlete_backend"
 VENV_DIR="$APP_ROOT/venv"
-DOMAIN="api.goathelet.org.in"
+DOMAIN="api.goathlete.org.in"
 SERVER_IP="72.60.193.38"
 SERVICE_NAME="goathlete"
 APP_USER="${SUDO_USER:-ubuntu}"
@@ -72,7 +72,7 @@ GOOGLE_OAUTH_SECRET=${GOOGLE_OAUTH_SECRET:-your_google_client_secret}
 MAPS_API_KEY=${MAPS_API_KEY:-your_maps_api_key}
 ANDROID_PACKAGE_NAME=${ANDROID_PACKAGE_NAME:-com.goathlete.com}
 ANDROID_TESTER_GOOGLE_GROUP_URL=${ANDROID_TESTER_GOOGLE_GROUP_URL:-https://groups.google.com/g/goathlete-testers}
-IOS_WEB_APP_URL=${IOS_WEB_APP_URL:-https://app.goathelet.org.in}
+IOS_WEB_APP_URL=${IOS_WEB_APP_URL:-https://app.goathlete.org.in}
 RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:-}
 RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:-}
 RAZORPAY_WEBHOOK_SECRET=${RAZORPAY_WEBHOOK_SECRET:-}
@@ -87,7 +87,7 @@ else
         sed -i "s/^ALLOWED_HOSTS=\(.*\)/ALLOWED_HOSTS=\1,${DOMAIN}/" "$BACKEND_DIR/.env"
     fi
     if ! grep -q "^IOS_WEB_APP_URL=" "$BACKEND_DIR/.env"; then
-        echo "IOS_WEB_APP_URL=https://app.goathelet.org.in" >> "$BACKEND_DIR/.env"
+        echo "IOS_WEB_APP_URL=https://app.goathlete.org.in" >> "$BACKEND_DIR/.env"
     fi
     if ! grep -q "^SECRET_KEY=" "$BACKEND_DIR/.env"; then
         SECRET_KEY_GEN=$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')

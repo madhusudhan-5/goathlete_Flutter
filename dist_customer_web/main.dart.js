@@ -34834,7 +34834,7 @@ b6K(){var s=null,r=A.amy().aDG(B.f,B.f)
 return A.to(B.ab,new A.qX(s,B.mP,A.aj(51,B.q.t()>>>16&255,B.q.t()>>>8&255,B.q.t()&255),s,4,s,new A.bv(A.aX(20),B.t)),B.Ll,new A.v5(A.d9(s,s,B.m,s,s,s,s,s,s,B.f,s,s,s,s,new A.bv(A.aX(8),B.t),s,s,s,A.amy().at,s)),s,r,!0)},
 amy(){var s=A.bvm().$0(),r=A.Ef().$3$fontSize$fontWeight$letterSpacing(48,B.w,-0.96),q=A.Ef().$3$fontSize$fontWeight$letterSpacing(32,B.bp,-0.32),p=A.Ef().$2$fontSize$fontWeight(24,B.bp)
 return s.aGc(A.Ef().$2$fontSize$fontWeight(18,B.x),A.Ef().$2$fontSize$fontWeight(16,B.x),r,q,p,A.Ef().$3$fontSize$fontWeight$letterSpacing(14,B.bp,0.14),A.Ef().$2$fontSize$fontWeight(12,B.ar))},
-aep(){var s=B.c.bD("https://api.goathelet.org.in")
+aep(){var s=B.c.bD("https://api.goathlete.org.in")
 if(B.c.fO(s,"/api/"))s=B.c.a9(s,0,s.length-5)
 else if(B.c.fO(s,"/api"))s=B.c.a9(s,0,s.length-4)
 while(B.c.fO(s,"/"))s=B.c.a9(s,0,s.length-1)
@@ -59334,7 +59334,7 @@ V(){return new A.N5()}}
 A.N5.prototype={
 ga2u(){var s=B.c.bD(A.btZ())
 if(s.length!==0)return s
-return"https://app.goathelet.org.in"},
+return"https://app.goathlete.org.in"},
 D5(){var s=0,r=A.t(t.H),q,p=this
 var $async$D5=A.u(function(a,b){if(a===1)return A.p(b,r)
 for(;;)switch(s){case 0:s=3

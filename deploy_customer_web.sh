@@ -5,12 +5,12 @@
 # ==============================================================================
 # Usage on Ubuntu server:
 #   chmod +x deploy_customer_web.sh
-#   sudo WEB_DOMAIN=app.goathelet.org.in ./deploy_customer_web.sh
+#   sudo WEB_DOMAIN=app.goathlete.org.in ./deploy_customer_web.sh
 # ==============================================================================
 
 set -euo pipefail
 
-WEB_DOMAIN="${WEB_DOMAIN:-app.goathelet.org.in}"
+WEB_DOMAIN="${WEB_DOMAIN:-app.goathlete.org.in}"
 WEB_ROOT="${WEB_ROOT:-/var/www/goathlete/customer_web}"
 SITE_NAME="goathlete-customer-web"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -34,7 +34,7 @@ fi
 chown -R "$APP_USER":www-data "$WEB_ROOT"
 chmod -R 755 "$WEB_ROOT"
 
-sed "s|server_name app.goathelet.org.in;|server_name ${WEB_DOMAIN};|g; s|root /var/www/goathlete/customer_web;|root ${WEB_ROOT};|g" \
+sed "s|server_name app.goathlete.org.in;|server_name ${WEB_DOMAIN};|g; s|root /var/www/goathlete/customer_web;|root ${WEB_ROOT};|g" \
     "$SCRIPT_DIR/nginx/goathlete_customer_web.conf" > "/etc/nginx/sites-available/${SITE_NAME}"
 
 ln -sf "/etc/nginx/sites-available/${SITE_NAME}" "/etc/nginx/sites-enabled/${SITE_NAME}"
